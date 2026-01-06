@@ -1,0 +1,126 @@
+enum ServerState : uint8 {
+    Success,
+    Failed,
+    VersionMismatch,
+    ServerMaintenance,
+    UnknownError,
+}
+
+enum ServerResult : uint8 {
+    Success,
+    Failed,
+    DuplicateAuth,
+    TryAgainLater,
+    AdultOnly,
+    Banned,
+    UnknownError,
+}
+
+enum PlatformType : uint8 {
+    Windows,
+    Android,
+    IOS,
+}
+
+@packet : client
+struct C_HandshakeSyn {
+    int32 ClientVersion;
+    string DeviceId;
+    PlatformType PlatformType;
+}
+
+@packet : server
+struct S_HandshakeSynAck {
+    date ServerTime;
+    int64 EncryptionSeed;
+    ServerState ServerState;
+}
+
+@packet : client
+struct C_Login {
+    string SessionToken;
+    int64 VerifySeed;
+}
+
+@packet : server
+struct S_LoginResponse {
+    ServerResult ServerResult;
+}
+
+@packet : client
+struct C_RequestWorldInfoArray {
+}
+
+@packet : server
+struct S_WorldInfoArray {
+    ServerResult ServerResult;
+    WorldInfo[] WorldInfoArray;
+}
+
+
+struct WorldInfo {
+    int16 WorldStaticId;
+    string WorldName;
+    int32 PlayerCount;
+    ChannelInfo[] ChannelInfoArray;
+}
+
+struct ChannelInfo {
+    int16 ChannelIndex;
+    string ChannelName;
+    int32 PlayerCount;
+}
+
+
+@packet : client
+struct C_RequestPlayerInfoArray {
+    int16 WorldStaticId;
+}
+
+
+@packet : server
+struct S_PlayerInfoArray {
+    ServerResult ServerResult;
+    PlayerInfo[] PlayerInfoArray;
+}
+
+
+struct PlayerInfo {
+    int16 Index;
+    string Nickname;
+    int32 Level;
+    // 캐릭터 미리보기 렌더링에 필요한 값들
+    date LastPlayedTime;
+}
+
+
+@packet : client
+struct C_EnterZone {
+    int16 WorldStaticId;
+    int16 ChannelIndex;
+    int16 PlayerIndex;
+}
+
+@packet : server
+struct S_EnterZoneResult {
+    ServerResult ServerResult;
+    int32 ZoneStaticId;
+}
+
+
+@packet : server
+struct S_SystemMessage {
+    string Message;
+}
+
+
+@packet : client
+struct C_Chat {
+    string Chat;
+}
+
+@packet : server
+struct S_Chat {
+    int64 GameObjRuntimeId;
+    string Chat;
+}

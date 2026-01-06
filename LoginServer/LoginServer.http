@@ -1,0 +1,10 @@
+@LoginServer_HostAddress = http://localhost:5182
+
+POST {{LoginServer_HostAddress}}/login
+Content-Type: application/json
+Accept: application/json
+
+{
+  "Id": "1",
+  "Password": "1"
+}
