@@ -1,6 +1,5 @@
 using System;
 using System.Threading;
-using ServerCore.Util;
 
 namespace ServerCore.Job
 {
@@ -56,7 +55,7 @@ namespace ServerCore.Job
         public static void PushAfter(int tickAfter, JobSerializer target, Action action)
         {
             var executionTick = Environment.TickCount64 + tickAfter;
-            var job = Job.Create(action);
+            var job = Job.Create(action, JobPriority.Normal);
 
             lock (Lock)
             {

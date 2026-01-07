@@ -6,7 +6,6 @@ namespace GameServer.Game.Contexts
     public abstract class BaseContext : IContext
     {
         private WriteOnce<long> _accountDbId = new();
-        private WriteOnce<TransactionResult> _result = new();
 
         public long AccountDbId
         {
@@ -14,10 +13,6 @@ namespace GameServer.Game.Contexts
             set => _accountDbId.Value = value;
         }
 
-        public TransactionResult Result
-        {
-            get => _result.Value;
-            set => _result.Value = value;
-        }
+        public TransactionResult Result { get; set; } = TransactionResult.Success;
     }
 }

@@ -133,8 +133,10 @@ namespace GameServer.Database
                 return;
             }
 
-            session.Routing.AccountDbIdRef.Attach(ctx.AccountDbId);
-            ctx.Result = TransactionResult.Success;
+            if (!session.Routing.AccountDbIdRef.TryAttach(ctx.AccountDbId))
+            {
+                ctx.Result = TransactionResult.FailedAttach;
+            }
             callback.Invoke(session, ctx);
         }
 
@@ -148,7 +150,7 @@ namespace GameServer.Database
             {
                 Log.Error(typeof(DbManager), "LogoutFailed: Session:{0} AccountDbId:{1}", session.RuntimeId, ctx.AccountDbId);
             }
-            session.Routing.AccountDbIdRef.Detach();
+            session.Routing.AccountDbIdRef.TryDetach();
             callback.Invoke(session, ctx);
         }
 
@@ -184,7 +186,7 @@ namespace GameServer.Database
         }
         private static void DetachPlayerJob<T>(ClientSession session, T ctx, Action<ClientSession, T> callback) where T : IPlayerDbContext
         {
-            session.Routing.PlayerRef.Detach();
+            session.Routing.PlayerRef.TryDetach();
             callback.Invoke(session, ctx);
         }
 
@@ -236,7 +238,6 @@ namespace GameServer.Database
                 return;
             }
             ctx.PlayerDb = playerDb;
-            ctx.Result = TransactionResult.Success;
             callback.Invoke(session, ctx);
         }
 
@@ -247,7 +248,6 @@ namespace GameServer.Database
                 try
                 {
                     ctx.WorldInfoList = MockRedis.GetWorldInfoList();
-                    ctx.Result = TransactionResult.Success;
                 }
                 catch (Exception e)
                 {
@@ -265,7 +265,6 @@ namespace GameServer.Database
                 try
                 {
                     ctx.PlayerDbList = GameDbCommand.GetPlayerList(ctx.AccountDbId, ctx.WorldStaticId);
-                    ctx.Result = TransactionResult.Success;
                 }
                 catch (Exception e)
                 {

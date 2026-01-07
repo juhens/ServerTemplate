@@ -4,13 +4,13 @@ using GameServer.Game.Rooms;
 using ServerCore.Job;
 
 // Change Channel Transaction
-// Network -> (check route Zone)Zone.Leave() -> Detach Zone
-// -> (check route Channel)Channel.Leave() -> Detach Channel -> callback[create new RoutingTargetContext]
-// -> Channel.Enter() -> Attach Channel -> Zone.Enter() -> Attach Zone -> Send(MoveChannelResult)
+// Network -> (check route Zone)Zone.Leave() -> TryDetach Zone
+// -> (check route Channel)Channel.Leave() -> TryDetach Channel -> callback[create new RoutingTargetContext]
+// -> Channel.Enter() -> TryAttach Channel -> Zone.Enter() -> TryAttach Zone -> Send(MoveChannelResult)
 
 // Change Zone Transaction
-// Network -> (check route Zone)Zone.Leave() -> Detach Zone -> callback[create new RoutingTargetContext]
-// -> Zone.Enter() -> Attach Zone -> Send(MoveChannelResult)
+// Network -> (check route Zone)Zone.Leave() -> TryDetach Zone -> callback[create new RoutingTargetContext]
+// -> Zone.Enter() -> TryAttach Zone -> Send(MoveChannelResult)
 
 namespace GameServer.Network.Components
 {
@@ -18,7 +18,7 @@ namespace GameServer.Network.Components
     {
         // Login, Logout
         public JobSerializedRef<long, DbJobSerializer> AccountDbIdRef { get; } = new();
-        // Load PlayerDb, Save PlayerDb, Detach
+        // Load PlayerDb, Save PlayerDb, TryDetach
         public JobSerializedRef<Player, DbJobSerializer> PlayerRef { get; } = new();
         // Enter World, Leave World
         public JobSerializedRef<World, World> WorldRef { get; } = new();

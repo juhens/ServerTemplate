@@ -1,4 +1,4 @@
-using GameServer.Network;
+ï»¿using GameServer.Network;
 using ServerCore;
 using ServerCore.Job;
 
@@ -18,18 +18,20 @@ namespace GameServer.Game.Rooms
             //TODO: Zone Init
         }
 
-        protected override void OnEnter(ClientSession session)
+        protected override bool OnEnter(ClientSession session)
         {
-            session.Routing.ZoneRef.Attach(this);
+            if (!session.Routing.ZoneRef.TryAttach(this)) return false;
             Log.Debug(this, "Entered Zone:{0} Session:{1}", StaticId, session.RuntimeId);
 
-            // TODO: Zone ÀÔÀå ÆĞÅ¶ ºê·ÎµåÄ³½ºÆ® ÇÊ¿ä ½Ã ¿©±â¼­ È£Ãâ
+            // TODO: Zone ì…ì¥ íŒ¨í‚· ë¸Œë¡œë“œìºìŠ¤íŠ¸ í•„ìš” ì‹œ ì—¬ê¸°ì„œ í˜¸ì¶œ
             // Broadcast(session, enterPacket);
+            return true;
         }
-        protected override void OnLeave(ClientSession session)
+        protected override bool OnLeave(ClientSession session)
         {
-            session.Routing.ZoneRef.Detach();
+            if (!session.Routing.ZoneRef.TryDetach()) return false;
             Log.Debug(this, "Left Zone:{0} Session:{1}", StaticId, session.RuntimeId);
+            return true;
         }
     }
 }

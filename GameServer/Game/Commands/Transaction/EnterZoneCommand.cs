@@ -73,12 +73,16 @@ namespace GameServer.Game.Commands.Transaction
             }
             ctx.Zone = zone;
             var player = new Player(ctx.PlayerDb);
-            session.Routing.PlayerRef.Attach(player);
+
+            if (!session.Routing.PlayerRef.TryAttach(player))
+            {
+                ctx.Result = TransactionResult.FailedAttach;
+            }
 
             // 마지막 체크
             if (session.Disconnected)
             {
-                session.Transaction.Failed("OnLoadPlayer.Execute:Disconnected");
+                session.Transaction.Failed("OnLoadPlayer:Disconnected");
             }
             else
             {
@@ -87,10 +91,16 @@ namespace GameServer.Game.Commands.Transaction
         }
         private static void OnWorldEnter(ClientSession session, EnterZoneContext ctx)
         {
+            if (ctx.Result != TransactionResult.Success)
+            {
+                session.Transaction.Failed($"OnWorldEnter:{ctx.Result}");
+                return;
+            }
+
             // 마지막 체크
             if (session.Disconnected)
             {
-                session.Transaction.Failed("OnWorldEnter.Execute:Disconnected");
+                session.Transaction.Failed("OnWorldEnter:Disconnected");
             }
             else
             {
@@ -99,10 +109,16 @@ namespace GameServer.Game.Commands.Transaction
         }
         private static void OnChannelEnter(ClientSession session, EnterZoneContext ctx)
         {
+            if (ctx.Result != TransactionResult.Success)
+            {
+                session.Transaction.Failed($"OnChannelEnter:{ctx.Result}");
+                return;
+            }
+
             // 마지막 체크
             if (session.Disconnected)
             {
-                session.Transaction.Failed("OnChannelEnter.Execute:Disconnected");
+                session.Transaction.Failed("OnChannelEnter:Disconnected");
             }
             else
             {
@@ -111,10 +127,16 @@ namespace GameServer.Game.Commands.Transaction
         }
         private static void OnZoneEnter(ClientSession session, EnterZoneContext ctx)
         {
+            if (ctx.Result != TransactionResult.Success)
+            {
+                session.Transaction.Failed($"OnZoneEnter:{ctx.Result}");
+                return;
+            }
+
             // 마지막 체크
             if (session.Disconnected)
             {
-                session.Transaction.Failed("OnZoneEnter.Execute:Disconnected");
+                session.Transaction.Failed("OnZoneEnter:Disconnected");
             }
             else
             {

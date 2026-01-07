@@ -1,5 +1,6 @@
 using System;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace ServerCore.Job
 {
@@ -51,14 +52,56 @@ namespace ServerCore.Job
             RegisterSchedule();
         }
 
+        protected ValueTask PushAsync(Action action, JobPriority jobPriority)
+        {
+            var job = JobAsync.Create(action, jobPriority, out var valueTask);
+            _jobQueue.Push(job);
+            RegisterSchedule();
+            return valueTask;
+        }
+        protected ValueTask PushAsync<T1>(Action<T1> action, T1 t1, JobPriority jobPriority)
+        {
+            var job = JobAsync<T1>.Create(action, t1, jobPriority, out var valueTask);
+            _jobQueue.Push(job);
+            RegisterSchedule();
+            return valueTask;
+        }
+        protected ValueTask PushAsync<T1, T2>(Action<T1, T2> action, T1 t1, T2 t2, JobPriority jobPriority)
+        {
+            var job = JobAsync<T1, T2>.Create(action, t1, t2, jobPriority, out var valueTask);
+            _jobQueue.Push(job);
+            RegisterSchedule();
+            return valueTask;
+        }
+        protected ValueTask PushAsync<T1, T2, T3>(Action<T1, T2, T3> action, T1 t1, T2 t2, T3 t3, JobPriority jobPriority)
+        {
+            var job = JobAsync<T1, T2, T3>.Create(action, t1, t2, t3, jobPriority, out var valueTask);
+            _jobQueue.Push(job);
+            RegisterSchedule();
+            return valueTask;
+        }
+        protected ValueTask PushAsync<T1, T2, T3, T4>(Action<T1, T2, T3, T4> action, T1 t1, T2 t2, T3 t3, T4 t4, JobPriority jobPriority)
+        {
+            var job = JobAsync<T1, T2, T3, T4>.Create(action, t1, t2, t3, t4, jobPriority, out var valueTask);
+            _jobQueue.Push(job);
+            RegisterSchedule();
+            return valueTask;
+        }
+
+
         private void RegisterSchedule()
         {
             if (Interlocked.CompareExchange(ref _isScheduled, 1, 0) != 0) return;
-            IsExecutorPush = true;
-            _executorPush.Invoke(this);
-            IsExecutorPush = false;
+            try
+            {
+                IsExecutorPush = true;
+                _executorPush.Invoke(this);
+            }
+            finally
+            {
+                IsExecutorPush = false;
+            }
         }
-
         public void Execute()
         {
             var prev = Current;

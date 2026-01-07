@@ -31,15 +31,17 @@ namespace GameServer.Game.Rooms
             return _zones.GetValueOrDefault(zoneStaticId);
         }
 
-        protected override void OnEnter(ClientSession session)
+        protected override bool OnEnter(ClientSession session)
         {
-            session.Routing.ChannelRef.Attach(this);
+            if (!session.Routing.ChannelRef.TryAttach(this)) return false;
             Log.Debug(this, "Entered Channel:{0} Session:{1}", Index, session.RuntimeId);
+            return true;
         }
-        protected override void OnLeave(ClientSession session)
+        protected override bool OnLeave(ClientSession session)
         {
-            session.Routing.ChannelRef.Detach();
+            if (!session.Routing.ChannelRef.TryDetach()) return false;
             Log.Debug(this, "Left Channel:{0} Session:{1}", Index, session.RuntimeId);
+            return true;
         }
 
         public ChannelInfoDto GetChannelInfo()

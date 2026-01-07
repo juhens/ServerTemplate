@@ -8,48 +8,60 @@ namespace ServerCore.Job
         private bool _hasValue;
         private readonly object _lock = new();
 
-        public void Attach(TData t)
+        public bool TryAttach(TData t)
         {
-#if DEBUG
+
             if (JobSerializer.Current is not TThread)
             {
+#if DEBUG
                 var current = JobSerializer.Current?.GetType().Name ?? "Unknown Thread";
-                Environment.FailFast($"[RoutingComponent] Attach {typeof(TData)} violation: Wrong Thread ({current})");
-            }
+                Environment.FailFast($"[RoutingComponent] TryAttach {typeof(TData)} violation: Wrong Thread ({current})");
 #endif
-            lock (_lock)
-            {
-#if DEBUG
-                if (_hasValue)
-                {
-                    Environment.FailFast($"[RoutingComponent] {typeof(TData)} collision! Already bound. Missing Detach call?");
-                }
-#endif
-                _t = t;
-                _hasValue = true;
-            }
-        }
-        public void Detach()
-        {
-#if DEBUG
-            if (JobSerializer.Current is not TThread)
-            {
-                var current = JobSerializer.Current?.GetType().Name ?? "External Thread";
-                Environment.FailFast($"[RoutingComponent] Detach {typeof(TData)} violation: Wrong Thread ({current})");
-            }
-#endif
-            lock (_lock)
-            {
-#if DEBUG
-                if (!_hasValue)
-                {
-                    Environment.FailFast($"[RoutingComponent] {typeof(TData)} is already null! Double-Free detected.");
-                }
-#endif
-                _t = default!;
-                _hasValue = false;
+                return false;
             }
 
+            lock (_lock)
+            {
+                if (_hasValue)
+                {
+#if DEBUG
+                    Environment.FailFast($"[RoutingComponent] {typeof(TData)} collision! Already bound. Missing TryDetach call?");
+#endif
+                    return false;
+                }
+
+                _t = t;
+                _hasValue = true;
+                return true;
+            }
+        }
+        public bool TryDetach()
+        {
+
+            if (JobSerializer.Current is not TThread)
+            {
+#if DEBUG
+                var current = JobSerializer.Current?.GetType().Name ?? "External Thread";
+                Environment.FailFast($"[RoutingComponent] TryDetach {typeof(TData)} violation: Wrong Thread ({current})");
+#endif
+                return false;
+            }
+
+            lock (_lock)
+            {
+
+                if (!_hasValue)
+                {
+#if DEBUG
+                    Environment.FailFast($"[RoutingComponent] {typeof(TData)} is already null! Double-Free detected.");
+#endif
+                    return false;
+                }
+
+                _t = default!;
+                _hasValue = false;
+                return true;
+            }
         }
         public bool TryCapture(out TData t)
         {

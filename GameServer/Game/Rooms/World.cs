@@ -36,15 +36,17 @@ namespace GameServer.Game.Rooms
             return _channels[channelIdx];
         }
 
-        protected override void OnEnter(ClientSession session)
+        protected override bool OnEnter(ClientSession session)
         {
-            session.Routing.WorldRef.Attach(this);
+            if (!session.Routing.WorldRef.TryAttach(this)) return false;
             Log.Debug(this, "Entered World:{0} Session:{1}", StaticId, session.RuntimeId);
+            return true;
         }
-        protected override void OnLeave(ClientSession session)
+        protected override bool OnLeave(ClientSession session)
         {
-            session.Routing.WorldRef.Detach();
+            if (!session.Routing.WorldRef.TryDetach()) return false;
             Log.Debug(this, "Left World:{0} Session:{1}", StaticId, session.RuntimeId);
+            return true;
         }
 
         public WorldInfoDto GetWorldInfo()

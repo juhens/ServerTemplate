@@ -21,8 +21,15 @@
         TryAgainLater,
         DummyAuthFailed, // dummyClient only
 
+        // Db
         LoadWorldInfoListFailed,
         LoadPlayerInfoListFailed,
         LoadPlayerFailed,
+
+        // Enter
+        NotRoutedPlayer,
+        DuplicateNickname,
+        FailedAttach,
+        FailedOnEnter,
     }
 }

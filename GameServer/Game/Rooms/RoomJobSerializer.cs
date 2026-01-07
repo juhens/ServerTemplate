@@ -28,25 +28,35 @@ namespace GameServer.Game.Rooms
         {
             if (!session.Routing.PlayerRef.TryCapture(out var player))
             {
-                session.Transaction.Failed($"{@this.GetType().Name} Error: Null PlayerDb");
+                ctx.Result = TransactionResult.NotRoutedPlayer;
+                callback(session, ctx);
                 return;
             }
 
             if (!@this._sessions.TryAdd(player.RuntimeId, session))
             {
-                session.Transaction.Failed($"{@this.GetType().Name} Entry Failed: Duplicate RuntimeId");
+                ctx.Result = TransactionResult.DuplicateNickname;
+                callback(session, ctx);
                 return;
             }
 
             if (!@this._playerNameToRuntimeId.TryAdd(player.Nickname, player.RuntimeId))
             {
                 @this._sessions.Remove(player.RuntimeId, out _);
-                session.Transaction.Failed($"{@this.GetType().Name} Entry Failed: Duplicate Nickname");
+                ctx.Result = TransactionResult.DuplicateNickname;
+                callback(session, ctx);
                 return;
             }
-            Interlocked.Increment(ref @this._sessionCount);
 
-            @this.OnEnter(session);
+            if (!@this.OnEnter(session))
+            {
+                @this._sessions.Remove(player.RuntimeId, out _);
+                @this._playerNameToRuntimeId.Remove(player.Nickname, out _);
+                ctx.Result = TransactionResult.FailedOnEnter;
+                return;
+            }
+
+            Interlocked.Increment(ref @this._sessionCount);
             callback(session, ctx);
         }
 
@@ -69,7 +79,8 @@ namespace GameServer.Game.Rooms
                 Log.Error(@this, "Leave: Missing PlayerDb. Session:{0}", session.RuntimeId);
             }
 
-            @this.OnLeave(session);
+            if (!@this.OnLeave(session))
+                Log.Error(@this, "Leave: OnLeaveFailed. Session:{0}", session.RuntimeId);
             callback(session, ctx);
         }
 
@@ -81,7 +92,6 @@ namespace GameServer.Game.Rooms
         {
             @this._broadcastList.Add((session, segment));
         }
-
 
         protected ClientSession? FindSession(long playerRuntimeId)
         {
@@ -115,7 +125,7 @@ namespace GameServer.Game.Rooms
             }
             _broadcastList.Clear();
         }
-        protected abstract void OnEnter(ClientSession session);
-        protected abstract void OnLeave(ClientSession session);
+        protected abstract bool OnEnter(ClientSession session);
+        protected abstract bool OnLeave(ClientSession session);
     }
 }
