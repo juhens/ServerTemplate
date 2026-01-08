@@ -10,6 +10,7 @@ namespace GameServer.Database
         public string Nickname { get; init; } = string.Empty;
 
         public short WorldStaticId { get; init; }
+        public int ZoneStaticId { get; init; }
         public short Index { get; set; }
 
         // 기타 게임 데이터 (레벨, 경험치 등)

@@ -1,6 +1,6 @@
 ﻿using GameServer.Database;
-using GameServer.Game.Contexts.Interfaces;
-using GameServer.Game.Contexts.Transaction;
+using GameServer.Game.Commands.Transaction.Contexts.Interfaces;
+using GameServer.Game.Commands.Transaction.Contexts.Transaction;
 using GameServer.Network;
 using PacketGen;
 using ServerCore;
@@ -18,32 +18,30 @@ namespace GameServer.Game.Commands.Transaction
             // 로그인 상태 체크
             if (!session.Routing.AccountDbIdRef.TryCapture(out var accountDbId))
             {
-                session.Disconnect("Not logged account");
+                session.Transaction.Failed("Not logged account");
+                return;
             }
 
-            // 마지막 체크
-            if (session.Disconnected)
-            {
-                session.Transaction.Failed("LoadWorldInfoListCommand.Execute:Disconnected");
-            }
-            else
-            {
-                Log.Info(typeof(LoadWorldInfoListCommand), "[Begin] Session:{0} AccountDbId{1}", session.RuntimeId, accountDbId);
-                var ctx = LoadWorldInfoListContext.Create();
-                ctx.AccountDbId = accountDbId;
+            Log.Info(typeof(LoadWorldInfoListCommand), "[Begin] Session:{0} AccountDbId{1}", session.RuntimeId, accountDbId);
 
-                DbManager.Instance.LoadWorldInfoList(session, ctx, OnLoadWorldInfoList);
-            }
+            var ctx = session.Transaction.CreateContext<LoadWorldInfoListContext>();
+            ctx.Session = session;
+            ctx.AccountDbId = accountDbId;
+            ctx.OnCompleted = OnLoadWorldInfoList;
+
+            DbManager.Instance.LoadWorldInfoList(ctx);
         }
 
-        private static void OnLoadWorldInfoList(ClientSession session, LoadWorldInfoListContext ctx)
+        private static void OnLoadWorldInfoList(LoadWorldInfoListContext ctx)
         {
+            var session = ctx.Session;
             var response = new S_WorldInfoArray();
-            if (ctx.Result != TransactionResult.Success)
+            switch (ctx.Result)
             {
-                response.ServerResult = ServerResult.UnknownError;
-                session.Transaction.FailedWithLastMessage("OnLoadWorldInfoList: Failed load worldInfoList", response.Encode());
-                return;
+                case TransactionResult.FailedLoadWorldInfoList:
+                case TransactionResult.Disconnected:
+                    session.Transaction.Failed($"OnLoadPlayerInfoList:{ctx.Result}");
+                    return;
             }
 
             response.ServerResult = ServerResult.Success;

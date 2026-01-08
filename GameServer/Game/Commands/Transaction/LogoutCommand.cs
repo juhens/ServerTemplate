@@ -1,6 +1,6 @@
 ﻿using GameServer.Database;
-using GameServer.Game.Contexts.Interfaces;
-using GameServer.Game.Contexts.Transaction;
+using GameServer.Game.Commands.Transaction.Contexts.Interfaces;
+using GameServer.Game.Commands.Transaction.Contexts.Transaction;
 using GameServer.Network;
 using ServerCore;
 
@@ -19,70 +19,83 @@ namespace GameServer.Game.Commands.Transaction
             var chInfo = session.Routing.ChannelRef.TryCapture(out var c) ? $"Channel:{c.Index} " : "";
             var zoneInfo = session.Routing.ZoneRef.TryCapture(out var z) ? $"Zone:{z.StaticId} " : "";
 
-            Log.Info(typeof(LogoutCommand), "[Begin] Logout Session:{0} {1}{2}{3}{4}{5}", 
+            Log.Info(typeof(LogoutCommand), "[Begin] Session:{0} {1}{2}{3}{4}{5}", 
                 session.RuntimeId, accInfo, playerInfo, worldInfo, chInfo, zoneInfo);
 
-            var ctx = LogoutContext.Create();
-
+            // 현재 로그아웃은 Failed 트랜잭션을 호출하지 않으니 마지막에 수동으로 해제!!!
+            var ctx = session.Transaction.CreateContext<LogoutContext>();
+            ctx.Session = session;
+            
             if (session.Routing.ZoneRef.TryCapture(out var zone))
             {
-                zone.Leave(session, ctx, OnZoneLeft);
-                return;
+                ctx.OnCompleted = OnZoneLeft;
+                zone.Leave(ctx);
             }
-
-            OnZoneLeft(session, ctx);
-        }
-
-        private static void OnZoneLeft(ClientSession session, LogoutContext ctx)
-        {
-            if (session.Routing.ChannelRef.TryCapture(out var channel))
+            else
             {
-                channel.Leave(session, ctx, OnChannelLeft);
-                return;
+                OnZoneLeft(ctx);
             }
-
-            OnChannelLeft(session, ctx);
         }
 
-        private static void OnChannelLeft(ClientSession session, LogoutContext ctx)
+        private static void OnZoneLeft(LogoutContext ctx)
         {
-            if (session.Routing.WorldRef.TryCapture(out var world))
+            if (ctx.Session.Routing.ChannelRef.TryCapture(out var channel))
             {
-                world.Leave(session, ctx, OnWorldLeft);
-                return;
+                ctx.OnCompleted = OnChannelLeft;
+                channel.Leave(ctx);
             }
-
-            OnWorldLeft(session, ctx);
+            else
+            {
+                OnChannelLeft(ctx);
+            }
         }
 
-        private static void OnWorldLeft(ClientSession session, LogoutContext ctx)
+        private static void OnChannelLeft(LogoutContext ctx)
         {
-            if (session.Routing.PlayerRef.TryCapture(out var player))
+            if (ctx.Session.Routing.WorldRef.TryCapture(out var world))
+            {
+                ctx.OnCompleted = OnWorldLeft;
+                world.Leave(ctx);
+            }
+            else
+            {
+                OnWorldLeft(ctx);
+            }
+        }
+
+        private static void OnWorldLeft(LogoutContext ctx)
+        {
+            if (ctx.Session.Routing.PlayerRef.TryCapture(out var player))
             {
                 var playerDb = player.ToPlayerDb();
                 ctx.PlayerDb = playerDb;
-                DbManager.Instance.SavePlayerDb(session, ctx, OnPlayerSaved);
-                return;
+                ctx.OnCompleted = OnPlayerSaved;
+                DbManager.Instance.SavePlayerWithDetach(ctx);
             }
-
-            OnPlayerSaved(session, ctx);
+            else
+            {
+                OnPlayerSaved(ctx);
+            }
         }
 
-        private static void OnPlayerSaved(ClientSession session, LogoutContext ctx)
+        private static void OnPlayerSaved(LogoutContext ctx)
         {
-            if (session.Routing.AccountDbIdRef.TryCapture(out var accountDbId))
+            if (ctx.Session.Routing.AccountDbIdRef.TryCapture(out var accountDbId))
             {
                 ctx.AccountDbId = accountDbId;
-                DbManager.Instance.Logout(session, ctx, OnLogout);
-                return;
+                ctx.OnCompleted = OnLogout;
+                DbManager.Instance.Logout(ctx);
             }
-
-            OnLogout(session, ctx);
+            else
+            {
+                OnLogout(ctx);
+            }
         }
 
-        private static void OnLogout(ClientSession session, LogoutContext ctx)
+        private static void OnLogout(LogoutContext ctx)
         {
-            Log.Info(typeof(LogoutCommand), "[ End ] Session:{0}", session.RuntimeId);
+            Log.Info(typeof(LogoutCommand), "[ End ] Session:{0}", ctx.Session.RuntimeId);
+            ctx.Dispose();
         }
     }
 }

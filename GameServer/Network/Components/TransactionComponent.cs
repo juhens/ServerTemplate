@@ -1,4 +1,5 @@
-﻿using GameServer.Game.Contexts.Interfaces;
+﻿using GameServer.Game.Commands.Transaction.Contexts;
+using GameServer.Game.Commands.Transaction.Contexts.Interfaces;
 
 namespace GameServer.Network.Components
 {
@@ -13,6 +14,7 @@ namespace GameServer.Network.Components
         private readonly ClientSession _session;
         private readonly Action<ClientSession> _logout;
         private volatile int _transactionState = (int)TransactionState.Idle;
+
         public bool TrySetState(TransactionState newState)
         {
             switch (newState)
@@ -63,6 +65,7 @@ namespace GameServer.Network.Components
         }
         public void ReleaseState()
         {
+            DisposeContext();
             var oldState = Interlocked.Exchange(ref _transactionState, (int)TransactionState.Idle);
 #if DEBUG
             if (oldState == (int)TransactionState.Idle)
@@ -84,6 +87,8 @@ namespace GameServer.Network.Components
         {
             if (!TrySetState(TransactionState.Failed)) return;
 
+            DisposeContext();
+
             if (_session.Disconnected)
             {
                 _logout.Invoke(_session);
@@ -95,6 +100,8 @@ namespace GameServer.Network.Components
         {
             if (!TrySetState(TransactionState.Failed)) return;
 
+            DisposeContext();
+
             if (_session.Disconnected)
             {
                 _logout.Invoke(_session);
@@ -105,6 +112,20 @@ namespace GameServer.Network.Components
         public void OnDisconnected()
         {
             _logout.Invoke(_session);
+        }
+
+
+        private Action? _disposeContext;
+        public T CreateContext<T>() where T : BaseContext<T>, new()
+        {
+            var ctx = BaseContext<T>.Create();
+            _disposeContext = ctx.Dispose;
+            return ctx;
+        }
+        private void DisposeContext()
+        {
+            _disposeContext?.Invoke();
+            _disposeContext = null;
         }
     }
 }

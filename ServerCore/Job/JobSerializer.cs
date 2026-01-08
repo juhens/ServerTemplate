@@ -1,6 +1,5 @@
 using System;
 using System.Threading;
-using System.Threading.Tasks;
 
 namespace ServerCore.Job
 {
@@ -51,41 +50,10 @@ namespace ServerCore.Job
             _jobQueue.Push(Job<T1, T2, T3, T4>.Create(action, t1, t2, t3, t4, jobPriority));
             RegisterSchedule();
         }
-
-        protected ValueTask PushAsync(Action action, JobPriority jobPriority)
+        protected void Push<T1, T2, T3, T4, T5>(Action<T1, T2, T3, T4, T5> action, T1 t1, T2 t2, T3 t3, T4 t4, T5 t5, JobPriority jobPriority)
         {
-            var job = JobAsync.Create(action, jobPriority, out var valueTask);
-            _jobQueue.Push(job);
+            _jobQueue.Push(Job<T1, T2, T3, T4, T5>.Create(action, t1, t2, t3, t4, t5, jobPriority));
             RegisterSchedule();
-            return valueTask;
-        }
-        protected ValueTask PushAsync<T1>(Action<T1> action, T1 t1, JobPriority jobPriority)
-        {
-            var job = JobAsync<T1>.Create(action, t1, jobPriority, out var valueTask);
-            _jobQueue.Push(job);
-            RegisterSchedule();
-            return valueTask;
-        }
-        protected ValueTask PushAsync<T1, T2>(Action<T1, T2> action, T1 t1, T2 t2, JobPriority jobPriority)
-        {
-            var job = JobAsync<T1, T2>.Create(action, t1, t2, jobPriority, out var valueTask);
-            _jobQueue.Push(job);
-            RegisterSchedule();
-            return valueTask;
-        }
-        protected ValueTask PushAsync<T1, T2, T3>(Action<T1, T2, T3> action, T1 t1, T2 t2, T3 t3, JobPriority jobPriority)
-        {
-            var job = JobAsync<T1, T2, T3>.Create(action, t1, t2, t3, jobPriority, out var valueTask);
-            _jobQueue.Push(job);
-            RegisterSchedule();
-            return valueTask;
-        }
-        protected ValueTask PushAsync<T1, T2, T3, T4>(Action<T1, T2, T3, T4> action, T1 t1, T2 t2, T3 t3, T4 t4, JobPriority jobPriority)
-        {
-            var job = JobAsync<T1, T2, T3, T4>.Create(action, t1, t2, t3, t4, jobPriority, out var valueTask);
-            _jobQueue.Push(job);
-            RegisterSchedule();
-            return valueTask;
         }
 
 

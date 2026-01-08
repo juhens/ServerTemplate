@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
-using GameServer.Game.Contexts.Interfaces;
-using GameServer.Game.Contexts.Transaction;
+using GameServer.Game.Commands.Transaction.Contexts.Interfaces;
+using GameServer.Game.Commands.Transaction.Contexts.Transaction;
+using GameServer.Game.Objects;
 using GameServer.Network;
 using ServerCore;
 using ServerCore.Job;
@@ -42,7 +43,21 @@ namespace GameServer.Database
         {
             if (_shardCount == 0) return;
             var index = (int)((ulong)key % (ulong)_shardCount);
-            _shards[index].PushTask(job);
+            _shards[index].Push(job);
+        }
+
+        public void Push<T1>(Action<T1> job, T1 t1, long key)
+        {
+            if (_shardCount == 0) return;
+            var index = (int)((ulong)key % (ulong)_shardCount);
+            _shards[index].PushTask(job, t1);
+        }
+
+        public void Push<T1, T2>(Action<T1, T2> job, T1 t1, T2 t2, long key)
+        {
+            if (_shardCount == 0) return;
+            var index = (int)((ulong)key % (ulong)_shardCount);
+            _shards[index].PushTask(job, t1, t2);
         }
 
         private void Push<T1, T2, T3>(Action<T1, T2, T3> action, T1 t1, T2 t2, T3 t3, long key)
@@ -57,6 +72,13 @@ namespace GameServer.Database
             var index = (int)((ulong)key % (ulong)_shardCount);
             _shards[index].PushTask(action, t1, t2, t3, t4);
         }
+
+        private void Push<T1>(Action<T1> action, T1 t1, string key)
+        {
+            if (_shardCount == 0) return;
+            var index = (int)((uint)key.GetHashCode() % (uint)_shardCount);
+            _shards[index].PushTask(action, t1);
+        }
         private void Push<T1, T2, T3, T4>(Action<T1, T2, T3, T4> action, T1 t1, T2 t2, T3 t3, T4 t4, string key)
         {
             if (_shardCount == 0) return;
@@ -69,97 +91,135 @@ namespace GameServer.Database
             if (_shardCount == 0) return;
             var anchorKey = Math.Min(key1, key2);
             var index = (int)((ulong)anchorKey % (ulong)_shardCount);
-            _shards[index].PushTask(job);
+            _shards[index].Push(job);
         }
 
 
-
-        public void Login(ClientSession session, LoginContext ctx, Action<ClientSession, LoginContext> callback)
+        public void Auth(LoginContext ctx)
         {
-            var token = ctx.SessionToken;
-            Push(LoginJob, this, session, ctx, callback, token);
+            Push(AuthJob, ctx, ctx.SessionToken);
         }
-        private static void LoginJob(DbManager @this, ClientSession session, LoginContext ctx, Action<ClientSession, LoginContext> callback)
+        private static void AuthJob(LoginContext ctx)
         {
-            long accountDbId;
-            if (ctx.SessionToken.StartsWith("CORE_STRESS_TEST_"))
+            try
             {
-                var dbIdStr = ctx.SessionToken.Substring("CORE_STRESS_TEST_".Length);
-                if (!long.TryParse(dbIdStr, out accountDbId))
+                if (ctx.Session.Disconnected)
                 {
-                    ctx.Result = TransactionResult.DummyAuthFailed;
-                    callback.Invoke(session, ctx);
+                    ctx.Result = TransactionResult.Disconnected;
                     return;
                 }
-            }
-            else
-            {
-                var nullableAccountDbId = MockRedis.GetUserIdByToken(ctx.SessionToken);
-                if (nullableAccountDbId == null)
+
+                long accountDbId;
+                if (ctx.SessionToken.StartsWith("CORE_STRESS_TEST_"))
                 {
-                    ctx.Result = TransactionResult.InvalidToken;
-                    callback.Invoke(session, ctx);
+                    var dbIdStr = ctx.SessionToken.Substring("CORE_STRESS_TEST_".Length);
+                    if (!long.TryParse(dbIdStr, out accountDbId))
+                    {
+                        ctx.Result = TransactionResult.FailedDummyAuth;
+                        ctx.AccountDbId = -1;
+                        return;
+                    }
+                }
+                else
+                {
+                    var nullableAccountDbId = MockRedis.GetUserIdByToken(ctx.SessionToken);
+                    if (nullableAccountDbId == null)
+                    {
+                        ctx.Result = TransactionResult.InvalidToken;
+                        ctx.AccountDbId = -1;
+                        return;
+                    }
+                    accountDbId = nullableAccountDbId.Value;
+                }
+                ctx.Result = TransactionResult.Success;
+                ctx.AccountDbId = accountDbId;
+            }
+            catch (Exception e)
+            {
+                Log.Error(typeof(DbManager), "{0}", e);
+                ctx.Result = TransactionResult.Exception;
+            }
+            finally
+            {
+                ctx.OnCompleted?.Invoke(ctx);
+            }
+        }
+
+        public void Login<T>(T ctx) where T: IAuthContext
+        {
+            Push(LoginJob, this, ctx, ctx.AccountDbId);
+        }
+        private static void LoginJob<T>(DbManager @this, T ctx) where T : IAuthContext
+        {
+            try
+            {
+                if (ctx.Session.Disconnected)
+                {
+                    ctx.Result = TransactionResult.Disconnected;
                     return;
                 }
-                accountDbId = nullableAccountDbId.Value;
-            }
 
-            ctx.AccountDbId = accountDbId;
-            @this.LoginInternal(session, ctx, callback);
-        }
-        private void LoginInternal(ClientSession session, LoginContext ctx, Action<ClientSession, LoginContext> callback)
-        {
-            Push(LoginInternalJob, this, session, ctx, callback, ctx.AccountDbId);
-        }
-        private static void LoginInternalJob(DbManager @this, ClientSession session, LoginContext ctx, Action<ClientSession, LoginContext> callback)
-        {
-            // 이전 저장 실패한 플레이어 DB가 있는지 확인
-            if (@this._remainSavePlayerDb.TryGetValue(ctx.AccountDbId, out _))
+                if (@this._remainSavePlayerDb.TryGetValue(ctx.AccountDbId, out _))
+                {
+                    ctx.Result = TransactionResult.TryAgainLater;
+                    return;
+                }
+
+                // var accountDb = GameDbCommand.GetAccount(accountDbId);
+                // 유저 Db를 불러와서 벤 체크 등을 한다.
+
+                // 중복로그인 체크
+                if (!@this._authSessions.TryAdd(ctx.AccountDbId, ctx.Session))
+                {
+                    ctx.ExitSession = @this._authSessions[ctx.AccountDbId];
+                    ctx.Result = TransactionResult.DuplicateAuth;
+                    return;
+                }
+
+                if (!ctx.Session.Routing.AccountDbIdRef.TryAttach(ctx.AccountDbId))
+                {
+                    @this._authSessions.TryRemove(ctx.AccountDbId, out _);
+                    ctx.Result = TransactionResult.FailedAttach;
+                    return;
+                }
+
+                ctx.Result = TransactionResult.Success;
+            }
+            catch(Exception e)
             {
-                ctx.Result = TransactionResult.TryAgainLater;
-                callback.Invoke(session, ctx);
-                return;
+                Log.Error(typeof(DbManager), "{0}", e );
+                ctx.Result = TransactionResult.Exception;
             }
-
-            // var accountDb = GameDbCommand.GetAccount(accountDbId);
-            // 유저 Db를 불러와서 벤 체크 등을 한다.
-
-            // 중복로그인 체크
-            if (!@this._authSessions.TryAdd(ctx.AccountDbId, session))
+            finally
             {
-                ctx.ExitSession = @this._authSessions[ctx.AccountDbId];
-                ctx.Result = TransactionResult.DuplicateAuth;
-                callback.Invoke(session, ctx);
-                return;
+                ctx.Complete();
             }
-
-            if (!session.Routing.AccountDbIdRef.TryAttach(ctx.AccountDbId))
-            {
-                ctx.Result = TransactionResult.FailedAttach;
-            }
-            callback.Invoke(session, ctx);
         }
 
-        public void Logout<T>(ClientSession session, T ctx, Action<ClientSession, T> callback) where T : IContext
+        public void Logout<T>(T ctx) where T : IContext
         {
-            Push(LogoutJob, this, session, ctx, callback, ctx.AccountDbId);
+            Push(LogoutJob, this, ctx, ctx.AccountDbId);
         }
-        private static void LogoutJob<T>(DbManager @this, ClientSession session, T ctx, Action<ClientSession, T> callback) where T : IContext
+        private static void LogoutJob<T>(DbManager @this, T ctx) where T : IContext
         {
+            var session = ctx.Session;
             if (!@this._authSessions.TryRemove(ctx.AccountDbId, out _))
             {
                 Log.Error(typeof(DbManager), "LogoutFailed: Session:{0} AccountDbId:{1}", session.RuntimeId, ctx.AccountDbId);
             }
-            session.Routing.AccountDbIdRef.TryDetach();
-            callback.Invoke(session, ctx);
+            if (!session.Routing.AccountDbIdRef.TryDetach())
+                Log.Error(typeof(DbManager), "FailedDetach(AccountDbId): Session:{0} AccountDbId:{1}", session.RuntimeId, ctx.AccountDbId);
+            ctx.Complete();
         }
 
-        public void SavePlayerDb<T>(ClientSession session, T ctx, Action<ClientSession, T> callback) where T : IPlayerDbContext
+        public void SavePlayerWithDetach<T>(T ctx) where T : IPlayerDbContext
         {
-            Push(SavePlayerDbJob, this, session, ctx, callback, ctx.PlayerDb.PlayerDbId);
+            // 중요!!! ctx 에서 직접 accountDbId 읽기 금지
+            Push(SavePlayerWithDetachJob, this, ctx, ctx.PlayerDb.PlayerDbId);
         }
-        private static void SavePlayerDbJob<T>(DbManager @this, ClientSession session, T ctx, Action<ClientSession, T> callback) where T : IPlayerDbContext
+        private static void SavePlayerWithDetachJob<T>(DbManager @this, T ctx) where T : IPlayerDbContext
         {
+            var session = ctx.Session;
             try
             {
                 GameDbCommand.SavePlayer(ctx.PlayerDb);
@@ -175,13 +235,15 @@ namespace GameServer.Database
                     Log.Error(typeof(DbManager), "FallbackFailed: AccountDbId already exists. Session:{0}", session.RuntimeId);
                 }
             }
-            finally
-            {
-                @this.DetachPlayer(session, ctx, callback);
-            }
+
+            if (!session.Routing.PlayerRef.TryDetach())
+                Log.Error(typeof(DbManager), "FailedDetach(PlayerDbId): Session:{0} AccountDbId:{1}", session.RuntimeId, ctx.AccountDbId);
+            ctx.Complete();
         }
+
         public void DetachPlayer<T>(ClientSession session, T ctx, Action<ClientSession, T> callback) where T : IPlayerDbContext
         {
+            // 중요!!! ctx 에서 직접 accountDbId 읽기 금지
             Push(DetachPlayerJob, session, ctx, callback, ctx.PlayerDb.PlayerDbId);
         }
         private static void DetachPlayerJob<T>(ClientSession session, T ctx, Action<ClientSession, T> callback) where T : IPlayerDbContext
@@ -190,90 +252,149 @@ namespace GameServer.Database
             callback.Invoke(session, ctx);
         }
 
-        public void LoadPlayer<T>(ClientSession session, T ctx, Action<ClientSession, T> callback) where T : IContext, ILoadPlayerDbContext, IPlayerDbContext
+        public void FindPlayer<T>(T ctx) where T : IContext, ILoadPlayerDbContext
         {
-            Push(LoadPlayerJob, this, session, ctx, callback, ctx.AccountDbId);
+            Push(FindPlayerJob, this, ctx, ctx.AccountDbId);
         }
-        private static void LoadPlayerJob<T>(DbManager @this, ClientSession session, T ctx, Action<ClientSession, T> callback) where T : IContext, ILoadPlayerDbContext, IPlayerDbContext
+        private static void FindPlayerJob<T>(DbManager @this, T ctx) where T : IContext, ILoadPlayerDbContext
         {
+            var session = ctx.Session;
             try
             {
+                if (session.Disconnected)
+                {
+                    ctx.Result = TransactionResult.Disconnected;
+                    return;
+                }
+
                 var playerDbList = GameDbCommand.GetPlayerList(ctx.AccountDbId, ctx.World.StaticId);
                 var playerDb = playerDbList.FirstOrDefault(p => p.Index == ctx.PlayerIndex);
 
                 if (playerDb is null)
                 {
-                    Log.Warn(typeof(DbManager), "LoadPlayerFailed: Session:{0} AccountDbId:{1} PlayerIndex:{2} NotFound", session.RuntimeId, ctx.AccountDbId, ctx.PlayerIndex);
-                    ctx.Result = TransactionResult.LoadPlayerFailed;
-                    callback.Invoke(session, ctx);
+                    Log.Warn(typeof(DbManager),
+                        "FailedFindPlayer: Session:{0} AccountDbId:{1} PlayerIndex:{2} NotFound", session.RuntimeId,
+                        ctx.AccountDbId, ctx.PlayerIndex);
+                    ctx.Result = TransactionResult.BadPlayerIndex;
                     return;
                 }
 
                 ctx.PlayerDbId = playerDb.PlayerDbId;
+                ctx.Result = TransactionResult.Success;
             }
             catch (Exception e)
             {
-                Log.Warn(typeof(DbManager), "LoadPlayerInfoListFailed: Session:{0} AccountDbId:{1} Error: {2}", session.RuntimeId, ctx.AccountDbId, e.Message);
-                ctx.Result = TransactionResult.LoadPlayerFailed;
-                callback.Invoke(session, ctx);
-                return;
+                Log.Warn(typeof(DbManager), "FailedFindPlayer: Session:{0} AccountDbId:{1} Error: {2}",
+                    session.RuntimeId, ctx.AccountDbId, e.Message);
+                ctx.Result = TransactionResult.FailedFindPlayer;
             }
-            @this.LoadPlayerInternal(session, ctx, callback);
-        }
-        private void LoadPlayerInternal<T>(ClientSession session, T ctx, Action<ClientSession, T> callback) where T : IContext, ILoadPlayerDbContext, IPlayerDbContext
-        {
-            Push(LoadPlayerInternalJob, session, ctx, callback, ctx.PlayerDbId);
-        }
-        private static void LoadPlayerInternalJob<T>(ClientSession session, T ctx, Action<ClientSession, T> callback) where T : IContext, ILoadPlayerDbContext, IPlayerDbContext
-        {
-            //TODO: 일단 중복코드는 개념상 표기이고, GetPlayer 라는 메서드로 추후 교체한다.
-            var playerDbList = GameDbCommand.GetPlayerList(ctx.AccountDbId, ctx.World.StaticId);
-            var playerDb = playerDbList.FirstOrDefault(p => p.Index == ctx.PlayerIndex);
-
-            if (playerDb is null)
+            finally
             {
-                Log.Warn(typeof(DbManager), "LoadPlayerInternalFailed: Session:{0} AccountDbId:{1} PlayerIndex:{2} NotFound", session.RuntimeId, ctx.AccountDbId, ctx.PlayerIndex);
-                ctx.Result = TransactionResult.LoadPlayerFailed;
-                callback.Invoke(session, ctx);
-                return;
+                ctx.Complete();
             }
-            ctx.PlayerDb = playerDb;
-            callback.Invoke(session, ctx);
         }
 
-        public void LoadWorldInfoList(ClientSession session, LoadWorldInfoListContext ctx, Action<ClientSession, LoadWorldInfoListContext> callback)
+        public void LoadPlayer<T>(T ctx) where T : ILoadPlayerDbContext, IPlayerDbContext
         {
-            Push(() =>
-            {
-                try
-                {
-                    ctx.WorldInfoList = MockRedis.GetWorldInfoList();
-                }
-                catch (Exception e)
-                {
-                    Log.Warn(typeof(DbManager), "LoadWorldInfoListFailed: Session:{0} AccountDbId:{1} Error: {2}", session.RuntimeId, ctx.AccountDbId, e.Message);
-                    ctx.Result = TransactionResult.LoadWorldInfoListFailed;
-                    ctx.WorldInfoList = [];
-                }
-                callback.Invoke(session, ctx);
-            }, ctx.AccountDbId);
+            Push(LoadPlayerJob, ctx, ctx.PlayerDbId);
         }
-        public void LoadPlayerInfoList(ClientSession session, LoadPlayerInfoListContext ctx, Action<ClientSession, LoadPlayerInfoListContext> callback)
+        private static void LoadPlayerJob<T>(T ctx) where T : ILoadPlayerDbContext, IPlayerDbContext
         {
-            Push(() =>
+            var session = ctx.Session;
+            try
             {
-                try
+                if (session.Disconnected)
                 {
-                    ctx.PlayerDbList = GameDbCommand.GetPlayerList(ctx.AccountDbId, ctx.WorldStaticId);
+                    ctx.Result = TransactionResult.Disconnected;
+                    return;
                 }
-                catch (Exception e)
+
+                //TODO: 일단 중복코드는 개념상 표기이고, GetPlayer 라는 메서드로 추후 교체한다.
+                var playerDbList = GameDbCommand.GetPlayerList(ctx.AccountDbId, ctx.World.StaticId);
+                var playerDb = playerDbList.FirstOrDefault(p => p.Index == ctx.PlayerIndex);
+
+                if (playerDb is null)
                 {
-                    Log.Warn(typeof(DbManager), "LoadPlayerInfoListFailed: Session:{0} AccountDbId:{1} Error: {2}", session.RuntimeId, ctx.AccountDbId, e.Message);
-                    ctx.Result = TransactionResult.LoadPlayerInfoListFailed;
-                    ctx.PlayerDbList = [];
+                    Log.Warn(typeof(DbManager),
+                        "LoadPlayerInternalFailed: Session:{0} AccountDbId:{1} PlayerIndex:{2} NotFound",
+                        session.RuntimeId, ctx.AccountDbId, ctx.PlayerIndex);
+                    ctx.Result = TransactionResult.BadPlayerDbId;
+                    return;
                 }
-                callback.Invoke(session, ctx);
-            }, ctx.AccountDbId);
+
+                ctx.PlayerDb = playerDb;
+                ctx.Result = TransactionResult.Success;
+            }
+            catch (Exception e)
+            {
+                Log.Warn(typeof(DbManager), "FailedFindPlayer: Session:{0} AccountDbId:{1} Error: {2}",
+                    session.RuntimeId, ctx.AccountDbId, e.Message);
+                ctx.Result = TransactionResult.FailedLoadPlayer;
+            }
+            finally
+            {
+                ctx.Complete();
+            }
+        }
+
+        public void LoadWorldInfoList(LoadWorldInfoListContext ctx)
+        {
+            Push(LoadWorldInfoListJob, ctx, ctx.AccountDbId);
+        }
+        private static void LoadWorldInfoListJob(LoadWorldInfoListContext ctx)
+        {
+            var session = ctx.Session;
+            try
+            {
+                if (session.Disconnected)
+                {
+                    ctx.Result = TransactionResult.Disconnected;
+                    return;
+                }
+                ctx.WorldInfoList = MockRedis.GetWorldInfoList();
+                ctx.Result = TransactionResult.Success;
+            }
+            catch (Exception e)
+            {
+                Log.Warn(typeof(DbManager), "FailedLoadWorldInfoList: Session:{0} AccountDbId:{1} Error: {2}",
+                    session.RuntimeId, ctx.AccountDbId, e.Message);
+                ctx.Result = TransactionResult.FailedLoadWorldInfoList;
+                ctx.WorldInfoList = [];
+            }
+            finally
+            {
+                ctx.OnCompleted?.Invoke(ctx);
+            }
+        }
+
+        public void LoadPlayerInfoList(LoadPlayerInfoListContext ctx)
+        {
+            Push(LoadPlayerInfoListJob, ctx, ctx.AccountDbId);
+        }
+        private static void LoadPlayerInfoListJob(LoadPlayerInfoListContext ctx)
+        {
+            var session = ctx.Session;
+            try
+            {
+                if (session.Disconnected)
+                {
+                    ctx.Result = TransactionResult.Disconnected;
+                    return;
+                }
+                ctx.PlayerDbList = GameDbCommand.GetPlayerList(ctx.AccountDbId, ctx.WorldStaticId);
+                ctx.Result = TransactionResult.Success;
+            }
+            catch (Exception e)
+            {
+                Log.Warn(typeof(DbManager), "FailedLoadPlayerInfoList: Session:{0} AccountDbId:{1} Error: {2}",
+                    session.RuntimeId, ctx.AccountDbId, e.Message);
+                ctx.Result = TransactionResult.FailedLoadPlayerInfoList;
+                ctx.PlayerDbList = [];
+            }
+            finally
+            {
+                ctx.OnCompleted?.Invoke(ctx);
+            }
         }
     }
 }

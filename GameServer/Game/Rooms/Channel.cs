@@ -14,8 +14,9 @@ namespace GameServer.Game.Rooms
 
         public readonly short Index;
         private readonly Dictionary<int /*staticId*/, Zone> _zones = [];
+        private readonly Dictionary<long /*runtimeId*/, Zone> _instanceZones = [];
 
-        public int TotalZoneSessionCount => _zones.Values.Sum(z => z.SessionCount);
+        public int TotalZoneSessionCount => _zones.Values.Sum(z => z.SessionCount) + _instanceZones.Values.Sum(z => z.SessionCount);
 
         public void Initialize(object[] zoneData)
         {

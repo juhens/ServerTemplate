@@ -1,4 +1,4 @@
-﻿using GameServer.Game.Contexts.Interfaces;
+﻿using GameServer.Game.Commands.Transaction.Contexts.Interfaces;
 using GameServer.Network;
 using ServerCore;
 using ServerCore.Job;
@@ -20,52 +20,63 @@ namespace GameServer.Game.Rooms
         private volatile int _sessionCount;
         public int SessionCount => _sessionCount;
 
-        public void Enter<T>(ClientSession session, T ctx, Action<ClientSession, T> callback) where T : IContext
+        public void Enter<T>(T ctx) where T : IContext
         {
-            Push(EnterJob, this, session, ctx, callback, JobPriority.Critical);
+            Push(EnterJob, this, ctx, JobPriority.Critical);
         }
-        private static void EnterJob<T>(RoomJobSerializer @this, ClientSession session, T ctx, Action<ClientSession, T> callback) where T : IContext
+        private static void EnterJob<T>(RoomJobSerializer @this, T ctx) where T : IContext
         {
-            if (!session.Routing.PlayerRef.TryCapture(out var player))
+            var session = ctx.Session;
+            try
             {
-                ctx.Result = TransactionResult.NotRoutedPlayer;
-                callback(session, ctx);
-                return;
-            }
+                if (session.Disconnected)
+                {
+                    ctx.Result = TransactionResult.Disconnected;
+                    return;
+                }
 
-            if (!@this._sessions.TryAdd(player.RuntimeId, session))
+                if (!session.Routing.PlayerRef.TryCapture(out var player))
+                {
+                    ctx.Result = TransactionResult.NotRoutedPlayer;
+                    return;
+                }
+
+                if (!@this._sessions.TryAdd(player.RuntimeId, session))
+                {
+                    ctx.Result = TransactionResult.DuplicateRuntimeId;
+                    return;
+                }
+
+                if (!@this._playerNameToRuntimeId.TryAdd(player.Nickname, player.RuntimeId))
+                {
+                    @this._sessions.Remove(player.RuntimeId, out _);
+                    ctx.Result = TransactionResult.DuplicateNickname;
+                    return;
+                }
+
+                if (!@this.OnEnter(session))
+                {
+                    @this._sessions.Remove(player.RuntimeId, out _);
+                    @this._playerNameToRuntimeId.Remove(player.Nickname, out _);
+                    ctx.Result = TransactionResult.FailedOnEnter;
+                    return;
+                }
+
+                Interlocked.Increment(ref @this._sessionCount);
+            }
+            finally
             {
-                ctx.Result = TransactionResult.DuplicateNickname;
-                callback(session, ctx);
-                return;
+                ctx.Complete();
             }
-
-            if (!@this._playerNameToRuntimeId.TryAdd(player.Nickname, player.RuntimeId))
-            {
-                @this._sessions.Remove(player.RuntimeId, out _);
-                ctx.Result = TransactionResult.DuplicateNickname;
-                callback(session, ctx);
-                return;
-            }
-
-            if (!@this.OnEnter(session))
-            {
-                @this._sessions.Remove(player.RuntimeId, out _);
-                @this._playerNameToRuntimeId.Remove(player.Nickname, out _);
-                ctx.Result = TransactionResult.FailedOnEnter;
-                return;
-            }
-
-            Interlocked.Increment(ref @this._sessionCount);
-            callback(session, ctx);
         }
 
-        public void Leave<T>(ClientSession session, T ctx, Action<ClientSession, T> callback) where T : IContext
+        public void Leave<T>(T ctx) where T : IContext
         {
-            Push(LeaveJob, this, session, ctx, callback, JobPriority.Critical);
+            Push(LeaveJob, this, ctx, JobPriority.Critical);
         }
-        private static void LeaveJob<T>(RoomJobSerializer @this, ClientSession session, T ctx, Action<ClientSession, T> callback) where T : IContext
+        private static void LeaveJob<T>(RoomJobSerializer @this, T ctx) where T : IContext
         {
+            var session = ctx.Session;
             if (session.Routing.PlayerRef.TryCapture(out var player))
             {
                 if (@this._sessions.Remove(player.RuntimeId, out _))
@@ -81,7 +92,8 @@ namespace GameServer.Game.Rooms
 
             if (!@this.OnLeave(session))
                 Log.Error(@this, "Leave: OnLeaveFailed. Session:{0}", session.RuntimeId);
-            callback(session, ctx);
+            
+            ctx.Complete();
         }
 
         public void Broadcast(ClientSession session, ArraySegment<byte> segment, JobPriority jobPriority)

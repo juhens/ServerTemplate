@@ -67,7 +67,7 @@ namespace ServerCore.Job
         {
             lock (_lock)
             {
-                t = _t;
+                t = _hasValue ? _t : default!;
                 return _hasValue;
             }
         }

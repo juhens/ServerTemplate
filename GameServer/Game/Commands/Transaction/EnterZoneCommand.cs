@@ -1,6 +1,6 @@
 ﻿using GameServer.Database;
-using GameServer.Game.Contexts.Interfaces;
-using GameServer.Game.Contexts.Transaction;
+using GameServer.Game.Commands.Transaction.Contexts.Interfaces;
+using GameServer.Game.Commands.Transaction.Contexts.Transaction;
 using GameServer.Game.Objects;
 using GameServer.Network;
 using PacketGen;
@@ -19,7 +19,8 @@ namespace GameServer.Game.Commands.Transaction
             // 로그인 상태 체크
             if (!session.Routing.AccountDbIdRef.TryCapture(out var accountDbId))
             {
-                session.Disconnect("Not logged account");
+                session.Transaction.Failed("Not logged account");
+                return;
             }
 
             var dstWorld = Node.Instance.FindWorld(packet.WorldStaticId);
@@ -35,175 +36,136 @@ namespace GameServer.Game.Commands.Transaction
                 return;
             }
 
-            // 마지막 체크
-            if (session.Disconnected)
+            Log.Info(typeof(EnterZoneCommand), "[Begin] Session:{0} AccountDbId{1}", session.RuntimeId, accountDbId);
+
+            var ctx = session.Transaction.CreateContext<EnterZoneContext>();
+            ctx.Session = session;
+            ctx.AccountDbId = accountDbId;
+            ctx.World = dstWorld;
+            ctx.Channel = dstChannel;
+            ctx.PlayerIndex = packet.PlayerIndex;
+            ctx.OnCompleted = OnFindPlayer;
+            DbManager.Instance.FindPlayer(ctx);
+        }
+        private static void OnFindPlayer(EnterZoneContext ctx)
+        {
+            if (ctx.Result == TransactionResult.Success)
             {
-                session.Transaction.Failed("EnterZoneCommand.Execute:Disconnected");
+                ctx.OnCompleted = OnLoadPlayer;
+                DbManager.Instance.LoadPlayer(ctx);
             }
             else
             {
-                Log.Info(typeof(EnterZoneCommand), "[Begin] Session:{0} AccountDbId{1}", session.RuntimeId, accountDbId);
-                var ctx = EnterZoneContext.Create();
-                ctx.AccountDbId = accountDbId;
-                ctx.World = dstWorld;
-                ctx.Channel = dstChannel;
-                ctx.PlayerIndex = packet.PlayerIndex;
-
-                DbManager.Instance.LoadPlayer(session, ctx, OnLoadPlayer);
+                OnLoadPlayer(ctx);
             }
         }
-        private static void OnLoadPlayer(ClientSession session, EnterZoneContext ctx)
+
+        private static void OnLoadPlayer(EnterZoneContext ctx)
         {
-            if (ctx.Result != TransactionResult.Success)
+            var session = ctx.Session;
+            switch (ctx.Result)
             {
-                var response = new S_EnterZoneResult();
-                response.ServerResult = ServerResult.UnknownError;
-                session.Transaction.FailedWithLastMessage("OnLoadPlayer: Failed load player", response.Encode());
-                return;
+                // find player
+                case TransactionResult.BadPlayerIndex:
+                case TransactionResult.FailedFindPlayer:
+                // load player
+                case TransactionResult.BadPlayerDbId:
+                case TransactionResult.FailedLoadPlayer:
+                case TransactionResult.FailedAttach:
+                    var response = new S_EnterZoneResult();
+                    response.ServerResult = ServerResult.UnknownError;
+                    session.Transaction.FailedWithLastMessage($"OnLoadPlayer:{ctx.Result}", response.Encode());
+                    return;
+
+                case TransactionResult.Success:
+                    break;
+
+                case TransactionResult.Disconnected:
+                default:
+                    session.Transaction.Failed($"OnLoadPlayer:{ctx.Result}");
+                    return;
             }
 
+
+            // TODO : 추후 ctx에서 빼올것
+            // var zoneStaticId = ctx.PlayerDb.ZoneStaticId;
             var zoneStaticId = 0;
             var zone = ctx.Channel.FindZone(zoneStaticId);
             if (zone is null)
             {
-                var response = new S_EnterZoneResult();
-                response.ServerResult = ServerResult.UnknownError;
-                session.Transaction.FailedWithLastMessage($"OnLoadPlayer: Not found zone:{zoneStaticId}", response.Encode());
+                session.Transaction.Failed("OnLoadPlayer:Invalid zone");
                 return;
             }
+
             ctx.Zone = zone;
-            var player = new Player(ctx.PlayerDb);
 
-            if (!session.Routing.PlayerRef.TryAttach(player))
+            if (!session.Routing.PlayerRef.TryAttach(new Player(ctx.PlayerDb)))
             {
-                ctx.Result = TransactionResult.FailedAttach;
-            }
-
-            // 마지막 체크
-            if (session.Disconnected)
-            {
-                session.Transaction.Failed("OnLoadPlayer:Disconnected");
-            }
-            else
-            {
-                ctx.World.Enter(session, ctx, OnWorldEnter);
-            }
-        }
-        private static void OnWorldEnter(ClientSession session, EnterZoneContext ctx)
-        {
-            if (ctx.Result != TransactionResult.Success)
-            {
-                session.Transaction.Failed($"OnWorldEnter:{ctx.Result}");
+                session.Transaction.Failed("OnLoadPlayer:Failed attach");
                 return;
             }
 
-            // 마지막 체크
-            if (session.Disconnected)
-            {
-                session.Transaction.Failed("OnWorldEnter:Disconnected");
-            }
-            else
-            {
-                ctx.Channel.Enter(session, ctx, OnChannelEnter);
-            }
-        }
-        private static void OnChannelEnter(ClientSession session, EnterZoneContext ctx)
-        {
-            if (ctx.Result != TransactionResult.Success)
-            {
-                session.Transaction.Failed($"OnChannelEnter:{ctx.Result}");
-                return;
-            }
+            ctx.OnCompleted = OnWorldEnter;
+            ctx.World.Enter(ctx);
 
-            // 마지막 체크
-            if (session.Disconnected)
-            {
-                session.Transaction.Failed("OnChannelEnter:Disconnected");
-            }
-            else
-            {
-                ctx.Zone.Enter(session, ctx, OnZoneEnter);
-            }
-        }
-        private static void OnZoneEnter(ClientSession session, EnterZoneContext ctx)
-        {
-            if (ctx.Result != TransactionResult.Success)
-            {
-                session.Transaction.Failed($"OnZoneEnter:{ctx.Result}");
-                return;
-            }
-
-            // 마지막 체크
-            if (session.Disconnected)
-            {
-                session.Transaction.Failed("OnZoneEnter:Disconnected");
-            }
-            else
-            {
-                var response = new S_EnterZoneResult();
-                response.ServerResult = ServerResult.Success;
-                response.ZoneStaticId = ctx.Zone.StaticId;
-                session.Send(response.Encode());
-                session.Transaction.ReleaseState();
-            }
         }
 
-
-        // TODO: 추후 채널꽉참 구현시 필요
-        private static void Reject(ClientSession session, EnterZoneContext ctx)
+        private static void OnWorldEnter(EnterZoneContext ctx)
         {
-            if (session.Routing.ZoneRef.TryCapture(out var zone))
+            var session = ctx.Session;
+
+            switch (ctx.Result)
             {
-                zone.Leave(session, ctx, OnZoneLeave);
-                return;
+                case TransactionResult.NotRoutedPlayer:
+                case TransactionResult.DuplicateRuntimeId:
+                case TransactionResult.DuplicateNickname:
+                case TransactionResult.FailedOnEnter:
+                case TransactionResult.Disconnected:
+                    session.Transaction.Failed($"OnWorldEnter:{ctx.Result}");
+                    return;
             }
 
-            OnZoneLeave(session, ctx);
+            ctx.OnCompleted = OnChannelEnter;
+            ctx.Channel.Enter(ctx);
         }
-        private static void OnZoneLeave(ClientSession session, EnterZoneContext ctx)
+        private static void OnChannelEnter(EnterZoneContext ctx)
         {
-            if (session.Routing.ChannelRef.TryCapture(out var channel))
+            var session = ctx.Session;
+
+            switch (ctx.Result)
             {
-                channel.Leave(session, ctx, OnChannelLeave);
-                return;
+                case TransactionResult.NotRoutedPlayer:
+                case TransactionResult.DuplicateRuntimeId:
+                case TransactionResult.DuplicateNickname:
+                case TransactionResult.FailedOnEnter:
+                case TransactionResult.Disconnected:
+                    session.Transaction.Failed($"OnChannelEnter:{ctx.Result}");
+                    return;
             }
 
-            OnChannelLeave(session, ctx);
+            ctx.OnCompleted = OnZoneEnter;
+            ctx.Zone.Enter(ctx);
         }
-        private static void OnChannelLeave(ClientSession session, EnterZoneContext ctx)
+        private static void OnZoneEnter(EnterZoneContext ctx)
         {
-            if (session.Routing.WorldRef.TryCapture(out var world))
+            var session = ctx.Session;
+
+            switch (ctx.Result)
             {
-                world.Leave(session, ctx, OnWorldLeave);
-                return;
+                case TransactionResult.NotRoutedPlayer:
+                case TransactionResult.DuplicateRuntimeId:
+                case TransactionResult.DuplicateNickname:
+                case TransactionResult.FailedOnEnter:
+                case TransactionResult.Disconnected:
+                    session.Transaction.Failed($"OnZoneEnter:{ctx.Result}");
+                    return;
             }
 
-            OnWorldLeave(session, ctx);
-        }
-        private static void OnWorldLeave(ClientSession session, EnterZoneContext ctx)
-        {
-            if (session.Routing.PlayerRef.TryCapture(out var player))
-            {
-                DbManager.Instance.DetachPlayer(session, ctx, OnDetachPlayer);
-                return;
-            }
-
-            OnDetachPlayer(session, ctx);
-        }
-        private static void OnDetachPlayer(ClientSession session, EnterZoneContext ctx)
-        {
-            // 마지막 체크
-            if (session.Disconnected)
-            {
-                session.Transaction.Failed("OnZoneEnter.OnDetachPlayer:Disconnected");
-            }
-            else
-            {
-                var response = new S_EnterZoneResult();
-                response.ServerResult = ServerResult.Failed;
-                session.Send(response.Encode());
-                session.Transaction.ReleaseState();
-            }
+            var response = new S_EnterZoneResult();
+            response.ServerResult = ServerResult.Success;
+            response.ZoneStaticId = ctx.Zone.StaticId;
+            session.Send(response.Encode());
+            session.Transaction.ReleaseState();
         }
     }
 }

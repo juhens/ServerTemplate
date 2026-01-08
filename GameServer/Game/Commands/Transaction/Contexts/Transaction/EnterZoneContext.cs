@@ -1,18 +1,13 @@
 ﻿using GameServer.Database;
-using GameServer.Game.Contexts.Interfaces;
+using GameServer.Game.Commands.Transaction.Contexts;
+using GameServer.Game.Commands.Transaction.Contexts.Interfaces;
 using GameServer.Game.Rooms;
 using ServerCore.Job;
 
-namespace GameServer.Game.Contexts.Transaction
+namespace GameServer.Game.Commands.Transaction.Contexts.Transaction
 {
-    public class EnterZoneContext : BaseContext, ILoadPlayerDbContext, IPlayerDbContext
+    public class EnterZoneContext : BaseContext<EnterZoneContext>, ILoadPlayerDbContext, IPlayerDbContext
     {
-        private EnterZoneContext() { }
-        public static EnterZoneContext Create()
-        {
-            return new EnterZoneContext();
-        }
-
         private WriteOnce<World> _world = new();
         private WriteOnce<short> _playerIndex = new();
         private WriteOnce<long> _playerDbId = new();
@@ -51,6 +46,26 @@ namespace GameServer.Game.Contexts.Transaction
         {
             get => _zone.Value;
             set => _zone.Value = value;
+        }
+
+        protected override void OnInit()
+        {
+            _world = new WriteOnce<World>();
+            _playerIndex = new WriteOnce<short>();
+            _playerDbId = new WriteOnce<long>();
+            _playerDb = new WriteOnce<PlayerDb>();
+            _channel = new WriteOnce<Channel>();
+            _zone = new WriteOnce<Zone>();
+        }
+
+        protected override void OnDispose()
+        {
+            _world = default!;
+            _playerIndex = default!;
+            _playerDbId = default!;
+            _playerDb = default!;
+            _channel = default!;
+            _zone = default!;
         }
     }
 }

@@ -1,4 +1,4 @@
-﻿namespace GameServer.Game.Contexts.Interfaces
+﻿namespace GameServer.Game.Commands.Transaction.Contexts.Interfaces
 {
     public enum TransactionState
     {
@@ -11,6 +11,7 @@
     public enum TransactionResult
     {
         Success,
+        Exception,
 
         // Login
         DuplicateAuth,
@@ -19,17 +20,25 @@
         BannedAccount,
         InvalidToken,
         TryAgainLater,
-        DummyAuthFailed, // dummyClient only
+        FailedDummyAuth, // dummyClient only
 
         // Db
-        LoadWorldInfoListFailed,
-        LoadPlayerInfoListFailed,
-        LoadPlayerFailed,
+        FailedLoadWorldInfoList,
+        FailedLoadPlayerInfoList,
+        BadPlayerIndex,
+        FailedFindPlayer,
+        BadPlayerDbId,
+        FailedLoadPlayer,
 
         // Enter
         NotRoutedPlayer,
+        DuplicateRuntimeId,
         DuplicateNickname,
-        FailedAttach,
         FailedOnEnter,
+
+        FailedAttach,
+        FailedDetach,
+        Disconnected,
+
     }
 }

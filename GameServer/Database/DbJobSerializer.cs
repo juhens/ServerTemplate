@@ -4,13 +4,20 @@ namespace GameServer.Database
 {
     public class DbJobSerializer : JobSerializer
     {
-        public DbJobSerializer(IJobScheduler jobScheduler) : base(jobScheduler)
-        {
-        }
-        // [추가] DbManager가 작업을 넣을 수 있도록 래핑
-        public void PushTask(Action job)
+        public DbJobSerializer(IJobScheduler jobScheduler) : base(jobScheduler) { }
+
+        public void Push(Action job)
         {
             Push(job, JobPriority.Critical);
+        }
+        public void PushTask<T1>(Action<T1> action, T1 t1)
+        {
+            Push(action, t1, JobPriority.Critical);
+        }
+
+        public void PushTask<T1, T2>(Action<T1, T2> action, T1 t1, T2 t2)
+        {
+            Push(action, t1, t2, JobPriority.Critical);
         }
 
         public void PushTask<T1, T2, T3>(Action<T1, T2, T3> action, T1 t1, T2 t2, T3 t3)
