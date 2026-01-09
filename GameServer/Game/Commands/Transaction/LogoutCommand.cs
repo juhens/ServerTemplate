@@ -5,6 +5,9 @@ using ServerCore;
 
 namespace GameServer.Game.Commands.Transaction
 {
+    // 특별 커맨드
+    // 1. Failed 금지, 예외나 실패시 핸들링하면서 무조건 끝까지 진행되게 해야함
+    // 2. 자원회수 수동으로
     public static class LogoutCommand
     {
         public static void Execute(ClientSession session)
