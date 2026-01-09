@@ -5,7 +5,7 @@ using Garnet.common;
 using Garnet.server;
 using Tsavorite.core;
 
-namespace Garnet
+namespace CacheServer.Extensions
 {
     /// <summary>
     /// Functions to implement custom command SETPIFPGT - set with prefix, if existing prefix greater than specified (8 byte) long

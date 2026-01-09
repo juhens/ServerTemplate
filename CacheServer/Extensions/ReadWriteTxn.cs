@@ -5,7 +5,7 @@ using Garnet.common;
 using Garnet.server;
 using Tsavorite.core;
 
-namespace Garnet
+namespace CacheServer.Extensions
 {
     /// <summary>
     /// Functions to implement custom tranasction READWRITE - read one key, write to two keys

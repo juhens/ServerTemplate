@@ -4,7 +4,7 @@
 using Garnet.common;
 using Garnet.server;
 
-namespace Garnet
+namespace CacheServer.Extensions
 {
     /// <summary>
     /// Functions to implement custom transaction GETTWOKEYSNOTXN - it will use the Finalize method of a stored procedure

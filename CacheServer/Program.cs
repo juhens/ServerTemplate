@@ -2,10 +2,12 @@
 // Licensed under the MIT license.
 
 using System.Net;
+using CacheServer.Extensions;
+using Garnet;
 using Garnet.server;
 using Microsoft.Extensions.Logging;
 
-namespace Garnet
+namespace CacheServer
 {
     /// <summary>
     /// Garnet server entry point

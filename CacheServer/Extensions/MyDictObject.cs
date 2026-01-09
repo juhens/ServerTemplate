@@ -6,7 +6,7 @@ using System.Diagnostics.CodeAnalysis;
 using Garnet.server;
 using Tsavorite.core;
 
-namespace Garnet
+namespace CacheServer.Extensions
 {
     class MyDictFactory : CustomObjectFactory
     {

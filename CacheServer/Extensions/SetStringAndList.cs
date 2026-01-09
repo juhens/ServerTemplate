@@ -4,7 +4,7 @@
 using Garnet.common;
 using Garnet.server;
 
-namespace Garnet
+namespace CacheServer.Extensions
 {
     class SetStringAndList : CustomProcedure
     {

@@ -4,7 +4,7 @@
 using Garnet.common;
 using Garnet.server;
 
-namespace Garnet
+namespace CacheServer.Extensions
 {
     /// <summary>
     /// Functions to implement custom transaction MSETPX - set multiple keys with given expiration in milliseconds

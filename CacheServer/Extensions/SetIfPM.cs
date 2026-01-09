@@ -6,7 +6,7 @@ using Garnet.common;
 using Garnet.server;
 using Tsavorite.core;
 
-namespace Garnet
+namespace CacheServer.Extensions
 {
     /// <summary>
     /// Functions to implement custom command SETIFPM - set if prefix match

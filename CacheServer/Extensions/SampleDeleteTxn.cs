@@ -5,7 +5,7 @@ using Garnet.common;
 using Garnet.server;
 using Tsavorite.core;
 
-namespace Garnet
+namespace CacheServer.Extensions
 {
     /// <summary>
     /// Sample stored procedure that deletes different keys in the main and object stores
