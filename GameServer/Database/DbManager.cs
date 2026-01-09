@@ -39,59 +39,24 @@ namespace GameServer.Database
             if (_shardCount == 0) throw new InvalidOperationException("DbManager must be initialized first. Call Initialize() in Program.cs");
             _distributor.Start(2);
         }
-        public void Push(Action job, long key)
-        {
-            if (_shardCount == 0) return;
-            var index = (int)((ulong)key % (ulong)_shardCount);
-            _shards[index].Push(job);
-        }
 
-        public void Push<T1>(Action<T1> job, T1 t1, long key)
+        private void Push<T1>(Action<T1> job, T1 t1, long key)
         {
             if (_shardCount == 0) return;
             var index = (int)((ulong)key % (ulong)_shardCount);
             _shards[index].PushTask(job, t1);
         }
-
-        public void Push<T1, T2>(Action<T1, T2> job, T1 t1, T2 t2, long key)
+        private void Push<T1, T2>(Action<T1, T2> job, T1 t1, T2 t2, long key)
         {
             if (_shardCount == 0) return;
             var index = (int)((ulong)key % (ulong)_shardCount);
             _shards[index].PushTask(job, t1, t2);
         }
-
-        private void Push<T1, T2, T3>(Action<T1, T2, T3> action, T1 t1, T2 t2, T3 t3, long key)
-        {
-            if (_shardCount == 0) return;
-            var index = (int)((ulong)key % (ulong)_shardCount);
-            _shards[index].PushTask(action, t1, t2, t3);
-        }
-        private void Push<T1, T2, T3, T4>(Action<T1, T2, T3, T4> action, T1 t1, T2 t2, T3 t3, T4 t4, long key)
-        {
-            if (_shardCount == 0) return;
-            var index = (int)((ulong)key % (ulong)_shardCount);
-            _shards[index].PushTask(action, t1, t2, t3, t4);
-        }
-
         private void Push<T1>(Action<T1> action, T1 t1, string key)
         {
             if (_shardCount == 0) return;
             var index = (int)((uint)key.GetHashCode() % (uint)_shardCount);
             _shards[index].PushTask(action, t1);
-        }
-        private void Push<T1, T2, T3, T4>(Action<T1, T2, T3, T4> action, T1 t1, T2 t2, T3 t3, T4 t4, string key)
-        {
-            if (_shardCount == 0) return;
-            var index = (int)((uint)key.GetHashCode() % (uint)_shardCount);
-            _shards[index].PushTask(action, t1, t2, t3, t4);
-        }
-
-        public void Push(Action job, long key1, long key2)
-        {
-            if (_shardCount == 0) return;
-            var anchorKey = Math.Min(key1, key2);
-            var index = (int)((ulong)anchorKey % (ulong)_shardCount);
-            _shards[index].Push(job);
         }
 
 
@@ -239,17 +204,6 @@ namespace GameServer.Database
             if (!session.Routing.PlayerRef.TryDetach())
                 Log.Error(typeof(DbManager), "FailedDetach(PlayerDbId): Session:{0} AccountDbId:{1}", session.RuntimeId, ctx.AccountDbId);
             ctx.Complete();
-        }
-
-        public void DetachPlayer<T>(ClientSession session, T ctx, Action<ClientSession, T> callback) where T : IPlayerDbContext
-        {
-            // 중요!!! ctx 에서 직접 accountDbId 읽기 금지
-            Push(DetachPlayerJob, session, ctx, callback, ctx.PlayerDb.PlayerDbId);
-        }
-        private static void DetachPlayerJob<T>(ClientSession session, T ctx, Action<ClientSession, T> callback) where T : IPlayerDbContext
-        {
-            session.Routing.PlayerRef.TryDetach();
-            callback.Invoke(session, ctx);
         }
 
         public void FindPlayer<T>(T ctx) where T : IContext, ILoadPlayerDbContext
