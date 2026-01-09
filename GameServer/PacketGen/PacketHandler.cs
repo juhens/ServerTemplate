@@ -16,13 +16,13 @@ namespace PacketGen
 
             if (syn.ClientVersion < 1)
             {
-                synAck.ServerState = ServerState.VersionMismatch;
+                synAck.ServerResult = ServerResult.VersionMismatch;
             }
             else
             {
                 synAck.ServerTime = DateTime.Now;
                 synAck.EncryptionSeed = 123456;
-                synAck.ServerState = ServerState.Success;
+                synAck.ServerResult = ServerResult.Success;
             }
 
             session.Send(synAck.Encode());
@@ -64,6 +64,26 @@ namespace PacketGen
         }
 
         internal static void C_EnterZone_Handler(PacketSession session, C_EnterZone zone)
+        {
+            throw new NotImplementedException();
+        }
+
+        internal static void C_CreatePlayer_Handler(PacketSession session, C_CreatePlayer player)
+        {
+            throw new NotImplementedException();
+        }
+
+        internal static void C_DeletePlayer_Handler(PacketSession session, C_DeletePlayer player)
+        {
+            throw new NotImplementedException();
+        }
+
+        internal static void C_ChangeChannel_Handler(PacketSession session, C_ChangeChannel channel)
+        {
+            throw new NotImplementedException();
+        }
+
+        internal static void C_ChangeZone_Handler(PacketSession session, C_ChangeZone zone)
         {
             throw new NotImplementedException();
         }

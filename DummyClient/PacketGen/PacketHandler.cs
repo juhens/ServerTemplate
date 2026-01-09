@@ -8,7 +8,7 @@ namespace PacketGen
     {
         internal static void S_HandshakeSynAck_Handler(PacketSession session, S_HandshakeSynAck ack)
         {
-            if (ack.ServerState == ServerState.Success)
+            if (ack.ServerResult == ServerResult.Success)
             {
                 // 1. 암호화 설정
                 session.EnableCipher(ack.EncryptionSeed);
@@ -55,6 +55,26 @@ namespace PacketGen
         }
 
         internal static void S_EnterZoneResult_Handler(PacketSession session, S_EnterZoneResult result)
+        {
+            throw new NotImplementedException();
+        }
+
+        internal static void S_CreatePlayerResult_Handler(PacketSession session, S_CreatePlayerResult result)
+        {
+            throw new NotImplementedException();
+        }
+
+        internal static void C_DeletePlayerResult_Handler(PacketSession session, C_DeletePlayerResult result)
+        {
+            throw new NotImplementedException();
+        }
+
+        internal static void S_ChangeChannelResult_Handler(PacketSession session, S_ChangeChannelResult result)
+        {
+            throw new NotImplementedException();
+        }
+
+        internal static void S_ChangeZoneResult_Handler(PacketSession session, S_ChangeZoneResult result)
         {
             throw new NotImplementedException();
         }

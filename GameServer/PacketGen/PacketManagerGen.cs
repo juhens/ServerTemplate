@@ -28,8 +28,16 @@ namespace PacketGen
             OnRecv.Add(ProtocolId.C_RequestWorldInfoArray, MakePacket<C_RequestWorldInfoArray>);
             PacketWrapper<C_RequestPlayerInfoArray>.Handler = PacketHandler.C_RequestPlayerInfoArray_Handler;
             OnRecv.Add(ProtocolId.C_RequestPlayerInfoArray, MakePacket<C_RequestPlayerInfoArray>);
+            PacketWrapper<C_CreatePlayer>.Handler = PacketHandler.C_CreatePlayer_Handler;
+            OnRecv.Add(ProtocolId.C_CreatePlayer, MakePacket<C_CreatePlayer>);
+            PacketWrapper<C_DeletePlayer>.Handler = PacketHandler.C_DeletePlayer_Handler;
+            OnRecv.Add(ProtocolId.C_DeletePlayer, MakePacket<C_DeletePlayer>);
             PacketWrapper<C_EnterZone>.Handler = PacketHandler.C_EnterZone_Handler;
             OnRecv.Add(ProtocolId.C_EnterZone, MakePacket<C_EnterZone>);
+            PacketWrapper<C_ChangeChannel>.Handler = PacketHandler.C_ChangeChannel_Handler;
+            OnRecv.Add(ProtocolId.C_ChangeChannel, MakePacket<C_ChangeChannel>);
+            PacketWrapper<C_ChangeZone>.Handler = PacketHandler.C_ChangeZone_Handler;
+            OnRecv.Add(ProtocolId.C_ChangeZone, MakePacket<C_ChangeZone>);
             PacketWrapper<C_Chat>.Handler = PacketHandler.C_Chat_Handler;
             OnRecv.Add(ProtocolId.C_Chat, MakePacket<C_Chat>);
         }

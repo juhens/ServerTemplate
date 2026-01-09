@@ -1,5 +1,4 @@
 ﻿using GameServer.Database;
-using GameServer.Game.Commands.Transaction.Contexts.Interfaces;
 using GameServer.Game.Commands.Transaction.Contexts.Transaction;
 using GameServer.Network;
 using ServerCore;
@@ -11,7 +10,7 @@ namespace GameServer.Game.Commands.Transaction
         public static void Execute(ClientSession session)
         {
             // 트랜잭션 충돌 방어
-            if (!session.Transaction.TrySetState(TransactionState.Logout)) return;
+            if (!session.Transaction.TrySetLogout()) return;
 
             var accInfo = session.Routing.AccountDbIdRef.TryCapture(out var a) ? $"AccountDbId:{a}" : "";
             var playerInfo = session.Routing.PlayerRef.TryCapture(out var p) ? $"PlayerDbId:{p.PlayerDbId}) " : "";

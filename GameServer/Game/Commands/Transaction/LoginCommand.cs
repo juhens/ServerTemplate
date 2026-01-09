@@ -12,7 +12,7 @@ namespace GameServer.Game.Commands.Transaction
     {
         public static void Execute(ClientSession session, C_Login loginPacket)
         {
-            if (!session.Transaction.TrySetState(TransactionState.Busy)) return;
+            if (!session.Transaction.TrySetBusy()) return;
 
             Log.Info(typeof(LoginCommand), "[Begin] Session:{0}", session.RuntimeId);
 

@@ -1,14 +1,10 @@
-enum ServerState : uint8 {
+enum ServerResult : uint16 {
     Success,
     Failed,
+
     VersionMismatch,
     ServerMaintenance,
-    UnknownError,
-}
 
-enum ServerResult : uint8 {
-    Success,
-    Failed,
     DuplicateAuth,
     TryAgainLater,
     AdultOnly,
@@ -33,7 +29,7 @@ struct C_HandshakeSyn {
 struct S_HandshakeSynAck {
     date ServerTime;
     int64 EncryptionSeed;
-    ServerState ServerState;
+    ServerResult ServerResult;
 }
 
 @packet : client
@@ -93,6 +89,25 @@ struct PlayerInfo {
     date LastPlayedTime;
 }
 
+@packet : client
+struct C_CreatePlayer {
+    string Nickname;
+}
+
+@packet : server
+struct S_CreatePlayerResult {
+    ServerResult ServerResult;
+}
+
+@packet : client
+struct C_DeletePlayer {
+    int16 PlayerIndex;
+}
+
+@packet : server
+struct C_DeletePlayerResult {
+    ServerResult ServerResult;
+}
 
 @packet : client
 struct C_EnterZone {
@@ -105,14 +120,38 @@ struct C_EnterZone {
 struct S_EnterZoneResult {
     ServerResult ServerResult;
     int32 ZoneStaticId;
+    // 소환 좌표
 }
 
+@packet : client
+struct C_ChangeChannel {
+    int16 ChannelIndex;
+}
+
+@packet : server
+struct S_ChangeChannelResult {
+    ServerResult ServerResult;
+    // 채널 벗어나면 강제 팅겨내기위해 이것도
+    int32 ZoneStaticId;
+    // 소환 좌표
+}
+
+@packet : client
+struct C_ChangeZone {
+    int32 ZoneStaticId;
+}
+
+@packet : server
+struct S_ChangeZoneResult {
+    ServerResult ServerResult;
+    int32 ZoneStaticId;
+    // 소환 좌표
+}
 
 @packet : server
 struct S_SystemMessage {
     string Message;
 }
-
 
 @packet : client
 struct C_Chat {

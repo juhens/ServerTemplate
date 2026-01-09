@@ -19,26 +19,27 @@ namespace PacketGen
         S_WorldInfoArray = 6,
         C_RequestPlayerInfoArray = 7,
         S_PlayerInfoArray = 8,
-        C_EnterZone = 9,
-        S_EnterZoneResult = 10,
-        S_SystemMessage = 11,
-        C_Chat = 12,
-        S_Chat = 13,
+        C_CreatePlayer = 9,
+        S_CreatePlayerResult = 10,
+        C_DeletePlayer = 11,
+        C_DeletePlayerResult = 12,
+        C_EnterZone = 13,
+        S_EnterZoneResult = 14,
+        C_ChangeChannel = 15,
+        S_ChangeChannelResult = 16,
+        C_ChangeZone = 17,
+        S_ChangeZoneResult = 18,
+        S_SystemMessage = 19,
+        C_Chat = 20,
+        S_Chat = 21,
     }
 
-    public enum ServerState : byte
+    public enum ServerResult : ushort
     {
         Success,
         Failed,
         VersionMismatch,
         ServerMaintenance,
-        UnknownError,
-    }
-
-    public enum ServerResult : byte
-    {
-        Success,
-        Failed,
         DuplicateAuth,
         TryAgainLater,
         AdultOnly,
@@ -88,11 +89,11 @@ namespace PacketGen
         public ushort Protocol => (ushort)ProtocolId.S_HandshakeSynAck;
         public DateTime ServerTime;
         public long EncryptionSeed;
-        public ServerState ServerState;
+        public ServerResult ServerResult;
 
         public int GetMaxByteCount()
         {
-            int size = 17;
+            int size = 18;
             return size;
         }
 
@@ -100,14 +101,14 @@ namespace PacketGen
         {
             w.WriteDate(ServerTime);
             w.WriteInt64(EncryptionSeed);
-            w.WriteUInt8((byte)ServerState);
+            w.WriteUInt16((ushort)ServerResult);
         }
 
         public void Deserialize(ref PacketReader r)
         {
             ServerTime = r.ReadDate();
             EncryptionSeed = r.ReadInt64();
-            ServerState = (ServerState)r.ReadUInt8();
+            ServerResult = (ServerResult)r.ReadUInt16();
         }
     }
 
@@ -145,18 +146,18 @@ namespace PacketGen
 
         public int GetMaxByteCount()
         {
-            int size = 1;
+            int size = 2;
             return size;
         }
 
         public void Serialize(ref PacketWriter w)
         {
-            w.WriteUInt8((byte)ServerResult);
+            w.WriteUInt16((ushort)ServerResult);
         }
 
         public void Deserialize(ref PacketReader r)
         {
-            ServerResult = (ServerResult)r.ReadUInt8();
+            ServerResult = (ServerResult)r.ReadUInt16();
         }
     }
 
@@ -187,7 +188,7 @@ namespace PacketGen
 
         public int GetMaxByteCount()
         {
-            int size = 1;
+            int size = 2;
             size += 4;
             foreach(var x in WorldInfoArray)
             {
@@ -198,7 +199,7 @@ namespace PacketGen
 
         public void Serialize(ref PacketWriter w)
         {
-            w.WriteUInt8((byte)ServerResult);
+            w.WriteUInt16((ushort)ServerResult);
             w.WriteInt32(WorldInfoArray.Length);
             foreach(var x in WorldInfoArray)
             {
@@ -208,7 +209,7 @@ namespace PacketGen
 
         public void Deserialize(ref PacketReader r)
         {
-            ServerResult = (ServerResult)r.ReadUInt8();
+            ServerResult = (ServerResult)r.ReadUInt16();
             WorldInfoArray = new WorldInfo[r.ReadInt32()];
             for(int i = 0; i < WorldInfoArray.Length; i++)
             {
@@ -323,7 +324,7 @@ namespace PacketGen
 
         public int GetMaxByteCount()
         {
-            int size = 1;
+            int size = 2;
             size += 4;
             foreach(var x in PlayerInfoArray)
             {
@@ -334,7 +335,7 @@ namespace PacketGen
 
         public void Serialize(ref PacketWriter w)
         {
-            w.WriteUInt8((byte)ServerResult);
+            w.WriteUInt16((ushort)ServerResult);
             w.WriteInt32(PlayerInfoArray.Length);
             foreach(var x in PlayerInfoArray)
             {
@@ -344,7 +345,7 @@ namespace PacketGen
 
         public void Deserialize(ref PacketReader r)
         {
-            ServerResult = (ServerResult)r.ReadUInt8();
+            ServerResult = (ServerResult)r.ReadUInt16();
             PlayerInfoArray = new PlayerInfo[r.ReadInt32()];
             for(int i = 0; i < PlayerInfoArray.Length; i++)
             {
@@ -386,6 +387,96 @@ namespace PacketGen
         }
     }
 
+    public class C_CreatePlayer : IPacket, IStruct
+    {
+        public ushort Protocol => (ushort)ProtocolId.C_CreatePlayer;
+        public string Nickname = string.Empty;
+
+        public int GetMaxByteCount()
+        {
+            int size = 0;
+            size += 4;
+            size += Encoding.UTF8.GetMaxByteCount(Nickname.Length);
+            return size;
+        }
+
+        public void Serialize(ref PacketWriter w)
+        {
+            w.WriteString(Nickname);
+        }
+
+        public void Deserialize(ref PacketReader r)
+        {
+            Nickname = r.ReadString();
+        }
+    }
+
+    public class S_CreatePlayerResult : IPacket, IStruct
+    {
+        public ushort Protocol => (ushort)ProtocolId.S_CreatePlayerResult;
+        public ServerResult ServerResult;
+
+        public int GetMaxByteCount()
+        {
+            int size = 2;
+            return size;
+        }
+
+        public void Serialize(ref PacketWriter w)
+        {
+            w.WriteUInt16((ushort)ServerResult);
+        }
+
+        public void Deserialize(ref PacketReader r)
+        {
+            ServerResult = (ServerResult)r.ReadUInt16();
+        }
+    }
+
+    public class C_DeletePlayer : IPacket, IStruct
+    {
+        public ushort Protocol => (ushort)ProtocolId.C_DeletePlayer;
+        public short PlayerIndex;
+
+        public int GetMaxByteCount()
+        {
+            int size = 2;
+            return size;
+        }
+
+        public void Serialize(ref PacketWriter w)
+        {
+            w.WriteInt16(PlayerIndex);
+        }
+
+        public void Deserialize(ref PacketReader r)
+        {
+            PlayerIndex = r.ReadInt16();
+        }
+    }
+
+    public class C_DeletePlayerResult : IPacket, IStruct
+    {
+        public ushort Protocol => (ushort)ProtocolId.C_DeletePlayerResult;
+        public ServerResult ServerResult;
+
+        public int GetMaxByteCount()
+        {
+            int size = 2;
+            return size;
+        }
+
+        public void Serialize(ref PacketWriter w)
+        {
+            w.WriteUInt16((ushort)ServerResult);
+        }
+
+        public void Deserialize(ref PacketReader r)
+        {
+            ServerResult = (ServerResult)r.ReadUInt16();
+        }
+    }
+
     public class C_EnterZone : IPacket, IStruct
     {
         public ushort Protocol => (ushort)ProtocolId.C_EnterZone;
@@ -422,19 +513,113 @@ namespace PacketGen
 
         public int GetMaxByteCount()
         {
-            int size = 5;
+            int size = 6;
             return size;
         }
 
         public void Serialize(ref PacketWriter w)
         {
-            w.WriteUInt8((byte)ServerResult);
+            w.WriteUInt16((ushort)ServerResult);
             w.WriteInt32(ZoneStaticId);
         }
 
         public void Deserialize(ref PacketReader r)
         {
-            ServerResult = (ServerResult)r.ReadUInt8();
+            ServerResult = (ServerResult)r.ReadUInt16();
+            ZoneStaticId = r.ReadInt32();
+        }
+    }
+
+    public class C_ChangeChannel : IPacket, IStruct
+    {
+        public ushort Protocol => (ushort)ProtocolId.C_ChangeChannel;
+        public short ChannelIndex;
+
+        public int GetMaxByteCount()
+        {
+            int size = 2;
+            return size;
+        }
+
+        public void Serialize(ref PacketWriter w)
+        {
+            w.WriteInt16(ChannelIndex);
+        }
+
+        public void Deserialize(ref PacketReader r)
+        {
+            ChannelIndex = r.ReadInt16();
+        }
+    }
+
+    public class S_ChangeChannelResult : IPacket, IStruct
+    {
+        public ushort Protocol => (ushort)ProtocolId.S_ChangeChannelResult;
+        public ServerResult ServerResult;
+        public int ZoneStaticId;
+
+        public int GetMaxByteCount()
+        {
+            int size = 6;
+            return size;
+        }
+
+        public void Serialize(ref PacketWriter w)
+        {
+            w.WriteUInt16((ushort)ServerResult);
+            w.WriteInt32(ZoneStaticId);
+        }
+
+        public void Deserialize(ref PacketReader r)
+        {
+            ServerResult = (ServerResult)r.ReadUInt16();
+            ZoneStaticId = r.ReadInt32();
+        }
+    }
+
+    public class C_ChangeZone : IPacket, IStruct
+    {
+        public ushort Protocol => (ushort)ProtocolId.C_ChangeZone;
+        public int ZoneStaticId;
+
+        public int GetMaxByteCount()
+        {
+            int size = 4;
+            return size;
+        }
+
+        public void Serialize(ref PacketWriter w)
+        {
+            w.WriteInt32(ZoneStaticId);
+        }
+
+        public void Deserialize(ref PacketReader r)
+        {
+            ZoneStaticId = r.ReadInt32();
+        }
+    }
+
+    public class S_ChangeZoneResult : IPacket, IStruct
+    {
+        public ushort Protocol => (ushort)ProtocolId.S_ChangeZoneResult;
+        public ServerResult ServerResult;
+        public int ZoneStaticId;
+
+        public int GetMaxByteCount()
+        {
+            int size = 6;
+            return size;
+        }
+
+        public void Serialize(ref PacketWriter w)
+        {
+            w.WriteUInt16((ushort)ServerResult);
+            w.WriteInt32(ZoneStaticId);
+        }
+
+        public void Deserialize(ref PacketReader r)
+        {
+            ServerResult = (ServerResult)r.ReadUInt16();
             ZoneStaticId = r.ReadInt32();
         }
     }

@@ -13,7 +13,7 @@ namespace GameServer.Game.Commands.Transaction
         public static void Execute(ClientSession session, C_RequestPlayerInfoArray packet)
         {
             // 트랜잭션 충돌 방어
-            if (!session.Transaction.TrySetState(TransactionState.Busy)) return;
+            if (!session.Transaction.TrySetBusy()) return;
 
             // 로그인 상태 체크
             if (!session.Routing.AccountDbIdRef.TryCapture(out var accountDbId))

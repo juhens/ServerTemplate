@@ -28,8 +28,16 @@ namespace PacketGen
             OnRecv.Add(ProtocolId.S_WorldInfoArray, MakePacket<S_WorldInfoArray>);
             PacketWrapper<S_PlayerInfoArray>.Handler = PacketHandler.S_PlayerInfoArray_Handler;
             OnRecv.Add(ProtocolId.S_PlayerInfoArray, MakePacket<S_PlayerInfoArray>);
+            PacketWrapper<S_CreatePlayerResult>.Handler = PacketHandler.S_CreatePlayerResult_Handler;
+            OnRecv.Add(ProtocolId.S_CreatePlayerResult, MakePacket<S_CreatePlayerResult>);
+            PacketWrapper<C_DeletePlayerResult>.Handler = PacketHandler.C_DeletePlayerResult_Handler;
+            OnRecv.Add(ProtocolId.C_DeletePlayerResult, MakePacket<C_DeletePlayerResult>);
             PacketWrapper<S_EnterZoneResult>.Handler = PacketHandler.S_EnterZoneResult_Handler;
             OnRecv.Add(ProtocolId.S_EnterZoneResult, MakePacket<S_EnterZoneResult>);
+            PacketWrapper<S_ChangeChannelResult>.Handler = PacketHandler.S_ChangeChannelResult_Handler;
+            OnRecv.Add(ProtocolId.S_ChangeChannelResult, MakePacket<S_ChangeChannelResult>);
+            PacketWrapper<S_ChangeZoneResult>.Handler = PacketHandler.S_ChangeZoneResult_Handler;
+            OnRecv.Add(ProtocolId.S_ChangeZoneResult, MakePacket<S_ChangeZoneResult>);
             PacketWrapper<S_SystemMessage>.Handler = PacketHandler.S_SystemMessage_Handler;
             OnRecv.Add(ProtocolId.S_SystemMessage, MakePacket<S_SystemMessage>);
             PacketWrapper<S_Chat>.Handler = PacketHandler.S_Chat_Handler;

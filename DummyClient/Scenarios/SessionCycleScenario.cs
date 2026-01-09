@@ -60,7 +60,7 @@ namespace DummyClient.Scenarios
 
         public void OnDisconnected(ServerSession session, string? msg)
         {
-            Task.Delay(500).ContinueWith(_ =>
+            Task.Delay(200).ContinueWith(_ =>
             {
                 OnSessionDisconnected?.Invoke();
             });

@@ -2,6 +2,7 @@
 using GameServer.Game.Commands.Transaction.Contexts.Interfaces;
 using GameServer.Game.Commands.Transaction.Contexts.Transaction;
 using GameServer.Game.Objects;
+using GameServer.Game.Rooms;
 using GameServer.Network;
 using PacketGen;
 using ServerCore;
@@ -14,7 +15,7 @@ namespace GameServer.Game.Commands.Transaction
         public static void Execute(ClientSession session, C_EnterZone packet)
         {
             // 트랜잭션 충돌 방어
-            if (!session.Transaction.TrySetState(TransactionState.Busy)) return;
+            if (!session.Transaction.TrySetBusy()) return;
 
             // 로그인 상태 체크
             if (!session.Routing.AccountDbIdRef.TryCapture(out var accountDbId))
@@ -22,6 +23,24 @@ namespace GameServer.Game.Commands.Transaction
                 session.Transaction.Failed("Not logged account");
                 return;
             }
+
+            // 월드 바깥에서 순차 진입용이므로 이미 진입상태일때 거절
+            if (!session.Routing.WorldRef.TryCapture(out _))
+            {
+                session.Transaction.ReleaseState();
+                return;
+            }
+            if (!session.Routing.ChannelRef.TryCapture(out _))
+            {
+                session.Transaction.ReleaseState();
+                return;
+            }
+            if (!session.Routing.ZoneRef.TryCapture(out _))
+            {
+                session.Transaction.ReleaseState();
+                return;
+            }
+
 
             var dstWorld = Node.Instance.FindWorld(packet.WorldStaticId);
             if (dstWorld is null)
@@ -45,6 +64,7 @@ namespace GameServer.Game.Commands.Transaction
             ctx.Channel = dstChannel;
             ctx.PlayerIndex = packet.PlayerIndex;
             ctx.OnCompleted = OnFindPlayer;
+
             DbManager.Instance.FindPlayer(ctx);
         }
         private static void OnFindPlayer(EnterZoneContext ctx)
