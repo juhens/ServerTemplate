@@ -1,6 +1,7 @@
 using System.Text.Json.Serialization;
 using LoginServer.Data;
 using LoginServer.Services;
+using StackExchange.Redis;
 
 namespace LoginServer
 {
@@ -15,16 +16,17 @@ namespace LoginServer
                 options.SerializerOptions.PropertyNamingPolicy = null;
                 options.SerializerOptions.TypeInfoResolverChain.Insert(0, AppJsonSerializerContext.Default);
             });
-            
+            builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
+                ConnectionMultiplexer.Connect("127.0.0.1:6379"));
+
             builder.Services.AddSingleton<LoginService>();
 
             var app = builder.Build();
 
             // POST /login 엔드포인트 설정
-            app.MapPost("/login", (LoginRequest request, LoginService loginService) =>
+            app.MapPost("/login", async (LoginRequest request, LoginService loginService) =>
             {
-                // LoginService를 통해 로그인 처리
-                var response = loginService.ProcessLogin(request);
+                var response = await loginService.ProcessLogin(request);
 
                 if (response != null)
                 {
