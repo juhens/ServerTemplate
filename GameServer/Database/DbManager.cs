@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using GameServer.Database.Commands;
 using GameServer.Game.Commands.Transaction.Contexts.Interfaces;
 using GameServer.Game.Commands.Transaction.Contexts.Transaction;
 using GameServer.Game.Objects;
@@ -130,7 +131,7 @@ namespace GameServer.Database
                     return;
                 }
 
-                // var accountDb = GameDbCommand.GetAccount(accountDbId);
+                // var accountDb = DbCommand.GetAccount(accountDbId);
                 // 유저 Db를 불러와서 벤 체크 등을 한다.
 
                 // 중복로그인 체크
@@ -187,7 +188,7 @@ namespace GameServer.Database
             var session = ctx.Session;
             try
             {
-                GameDbCommand.SavePlayer(ctx.PlayerDb);
+                DbCommand.SavePlayer(ctx.PlayerDb);
                 Log.Debug(typeof(DbManager), "SavedSuccess: Session:{0} PlayerDbId:{1}", session.RuntimeId, ctx.PlayerDb.PlayerDbId);
             }
             catch (Exception e)
@@ -221,7 +222,7 @@ namespace GameServer.Database
                     return;
                 }
 
-                var playerDbList = GameDbCommand.GetPlayerList(ctx.AccountDbId, ctx.World.StaticId);
+                var playerDbList = DbCommand.GetPlayerList(ctx.AccountDbId, ctx.World.StaticId);
                 var playerDb = playerDbList.FirstOrDefault(p => p.Index == ctx.PlayerIndex);
 
                 if (playerDb is null)
@@ -264,7 +265,7 @@ namespace GameServer.Database
                 }
 
                 //TODO: 일단 중복코드는 개념상 표기이고, GetPlayer 라는 메서드로 추후 교체한다.
-                var playerDbList = GameDbCommand.GetPlayerList(ctx.AccountDbId, ctx.World.StaticId);
+                var playerDbList = DbCommand.GetPlayerList(ctx.AccountDbId, ctx.World.StaticId);
                 var playerDb = playerDbList.FirstOrDefault(p => p.Index == ctx.PlayerIndex);
 
                 if (playerDb is null)
@@ -335,7 +336,7 @@ namespace GameServer.Database
                     ctx.Result = TransactionResult.Disconnected;
                     return;
                 }
-                ctx.PlayerDbList = GameDbCommand.GetPlayerList(ctx.AccountDbId, ctx.WorldStaticId);
+                ctx.PlayerDbList = DbCommand.GetPlayerList(ctx.AccountDbId, ctx.WorldStaticId);
                 ctx.Result = TransactionResult.Success;
             }
             catch (Exception e)

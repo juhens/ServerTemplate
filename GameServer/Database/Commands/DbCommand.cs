@@ -1,8 +1,8 @@
 using GameServer.Database.Server.Database;
 
-namespace GameServer.Database
+namespace GameServer.Database.Commands
 {
-    public static class GameDbCommand
+    public static class DbCommand
     {
         // [변경 4] 반환 타입을 List<PlayerDb>로 변경
         public static List<PlayerDb> GetPlayerList(long accountDbId, short worldStaticId)
