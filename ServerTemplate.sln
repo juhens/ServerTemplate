@@ -20,6 +20,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LoginServer", "LoginServer\
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CacheServer", "CacheServer\CacheServer.csproj", "{04A288DA-CE43-43EB-AFE5-CA9C6683305A}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LobbyServer", "LobbyServer\LobbyServer.csproj", "{DA792F61-03A9-4AD3-9DC9-CC9DF1DBC2E6}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -50,6 +52,10 @@ Global
 		{04A288DA-CE43-43EB-AFE5-CA9C6683305A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{04A288DA-CE43-43EB-AFE5-CA9C6683305A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{04A288DA-CE43-43EB-AFE5-CA9C6683305A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DA792F61-03A9-4AD3-9DC9-CC9DF1DBC2E6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DA792F61-03A9-4AD3-9DC9-CC9DF1DBC2E6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DA792F61-03A9-4AD3-9DC9-CC9DF1DBC2E6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DA792F61-03A9-4AD3-9DC9-CC9DF1DBC2E6}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
