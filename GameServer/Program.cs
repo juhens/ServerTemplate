@@ -1,4 +1,5 @@
 using System.Net;
+using GameServer.Cache;
 using GameServer.Common;
 using GameServer.Database;
 using GameServer.Game;
@@ -11,6 +12,13 @@ namespace GameServer
     {
         private static void Main()
         {
+            // TODO: 슬슬 설정파일 읽기 드가야할때
+
+
+            // conn cache server
+            ICacheManager cacheManager = MockCacheManager.Instance;
+            cacheManager.Connect("localhost:6379", 5000);
+
             // init
             LogManager.Initialize();
             Node.Instance.Initialize(0, "0서버",1, new object[1]);
@@ -20,7 +28,7 @@ namespace GameServer
             Node.Instance.Start();
             DbManager.Instance.Start();
 
-            // update redis
+            // update to cache server
             var worldStates = Node.Instance.GetWorldInfoList();
             MockRedis.UpdateWorldInfoList(worldStates);
 

@@ -1,8 +1,8 @@
 using System.Collections.Concurrent;
+using GameServer.Cache;
 using GameServer.Database.Commands;
 using GameServer.Game.Commands.Transaction.Contexts.Interfaces;
 using GameServer.Game.Commands.Transaction.Contexts.Transaction;
-using GameServer.Game.Objects;
 using GameServer.Network;
 using ServerCore;
 using ServerCore.Job;
