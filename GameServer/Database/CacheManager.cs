@@ -48,7 +48,7 @@ namespace GameServer.Database
         }
     }
 
-    public interface IRedisManager
+    public interface ICacheManager
     {
         void Connect(string connectionString, int delay);
 
@@ -66,7 +66,7 @@ namespace GameServer.Database
     }
 
 
-    public class RedisManager : IRedisManager
+    public class RedisManager : ICacheManager
     {
         private RedisManager() {}
         public static RedisManager Instance { get; } = new RedisManager();
@@ -291,7 +291,7 @@ namespace GameServer.Database
         }
     }
 
-    public class MockRedisManager : IRedisManager
+    public class MockRedisManager : ICacheManager
     {
         private struct MockData
         {
