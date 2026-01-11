@@ -12,10 +12,15 @@ namespace ServerCore
 {
     public abstract class Session : IDisposable
     {
+        private static long _idCounter = 0;
         protected Session(AppSide side)
         {
+            RuntimeId = Interlocked.Increment(ref _idCounter);
             CipherSuite = new CipherSuite(side);
         }
+
+        public readonly long RuntimeId;
+
 
         private Socket _socket = null!;
         private EndPoint _endPoint = null!;
