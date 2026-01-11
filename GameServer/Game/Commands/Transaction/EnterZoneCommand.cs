@@ -5,6 +5,7 @@ using GameServer.Game.Objects;
 using GameServer.Network;
 using PacketGen;
 using ServerCore;
+using ServerCore.Infrastructure;
 using ServerCore.Packet;
 
 namespace GameServer.Game.Commands.Transaction
@@ -135,7 +136,7 @@ namespace GameServer.Game.Commands.Transaction
 
             switch (ctx.Result)
             {
-                case TransactionResult.NotRoutedPlayer:
+                case TransactionResult.NotRouted:
                 case TransactionResult.DuplicateRuntimeId:
                 case TransactionResult.DuplicateNickname:
                 case TransactionResult.FailedOnEnter:
@@ -153,7 +154,7 @@ namespace GameServer.Game.Commands.Transaction
 
             switch (ctx.Result)
             {
-                case TransactionResult.NotRoutedPlayer:
+                case TransactionResult.NotRouted:
                 case TransactionResult.DuplicateRuntimeId:
                 case TransactionResult.DuplicateNickname:
                 case TransactionResult.FailedOnEnter:
@@ -171,7 +172,7 @@ namespace GameServer.Game.Commands.Transaction
 
             switch (ctx.Result)
             {
-                case TransactionResult.NotRoutedPlayer:
+                case TransactionResult.NotRouted:
                 case TransactionResult.DuplicateRuntimeId:
                 case TransactionResult.DuplicateNickname:
                 case TransactionResult.FailedOnEnter:

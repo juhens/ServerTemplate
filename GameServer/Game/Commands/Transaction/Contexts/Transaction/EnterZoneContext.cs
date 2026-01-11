@@ -1,12 +1,13 @@
 ﻿using GameServer.Database;
-using GameServer.Game.Commands.Transaction.Contexts;
 using GameServer.Game.Commands.Transaction.Contexts.Interfaces;
 using GameServer.Game.Rooms;
+using GameServer.Network;
+using ServerCore.Infrastructure;
 using ServerCore.Job;
 
 namespace GameServer.Game.Commands.Transaction.Contexts.Transaction
 {
-    public class EnterZoneContext : BaseContext<EnterZoneContext>, ILoadPlayerDbContext, IPlayerDbContext
+    public class EnterZoneContext : BaseContext<ClientSession, EnterZoneContext>, ILoadPlayerDbContext, IPlayerDbContext
     {
         private WriteOnce<World> _world = new();
         private WriteOnce<short> _playerIndex = new();

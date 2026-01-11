@@ -1,10 +1,11 @@
 ﻿using GameServer.Database;
-using GameServer.Game.Commands.Transaction.Contexts;
+using GameServer.Network;
+using ServerCore.Infrastructure;
 using ServerCore.Job;
 
 namespace GameServer.Game.Commands.Transaction.Contexts.Transaction
 {
-    public class LoadPlayerInfoListContext : BaseContext<LoadPlayerInfoListContext>
+    public class LoadPlayerInfoListContext : BaseContext<ClientSession, LoadPlayerInfoListContext>
     {
         private WriteOnce<short> _worldStaticId = new();
         private WriteOnce<List<PlayerDb>> _playerDbList = new();

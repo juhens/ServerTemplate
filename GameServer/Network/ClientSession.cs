@@ -1,25 +1,24 @@
 using System.Net;
-using GameServer.Common;
 using GameServer.Game.Commands.Transaction;
 using GameServer.Network.Components;
 using PacketGen;
 using ServerCore;
 using ServerCore.Cipher;
+using ServerCore.Infrastructure;
 using ServerCore.Packet;
 
 namespace GameServer.Network
 {
-    public class ClientSession : PacketSession, IRuntimeId
+    public class ClientSession : PacketSession
     {
         public ClientSession() : base(AppSide.Server)
         {
             Routing = new RoutingComponent();
-            Transaction = new TransactionComponent(this, LogoutCommand.Execute);
+            Transaction = new TransactionComponent<ClientSession>(this, LogoutCommand.Execute);
         }
 
-        public long RuntimeId { get; init; }
         public readonly RoutingComponent Routing;
-        public readonly TransactionComponent Transaction;
+        public readonly TransactionComponent<ClientSession> Transaction;
 
         protected override void OnConnected(EndPoint endPoint)
         {

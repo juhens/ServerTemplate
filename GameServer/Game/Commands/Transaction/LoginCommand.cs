@@ -1,9 +1,9 @@
 ﻿using GameServer.Database;
-using GameServer.Game.Commands.Transaction.Contexts.Interfaces;
 using GameServer.Game.Commands.Transaction.Contexts.Transaction;
 using GameServer.Network;
 using PacketGen;
 using ServerCore;
+using ServerCore.Infrastructure;
 using ServerCore.Packet;
 
 namespace GameServer.Game.Commands.Transaction

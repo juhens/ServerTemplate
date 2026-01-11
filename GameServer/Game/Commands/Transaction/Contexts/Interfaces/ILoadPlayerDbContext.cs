@@ -1,8 +1,10 @@
 ﻿using GameServer.Game.Rooms;
+using GameServer.Network;
+using ServerCore.Infrastructure;
 
 namespace GameServer.Game.Commands.Transaction.Contexts.Interfaces
 {
-    public interface ILoadPlayerDbContext : IContext
+    public interface ILoadPlayerDbContext : IContext<ClientSession>
     {
         public World World { get; set; }
         public short PlayerIndex { get; set; }

@@ -1,11 +1,11 @@
-﻿using GameServer.Game.Commands.Transaction.Contexts;
-using GameServer.Game.Commands.Transaction.Contexts.Interfaces;
+﻿using GameServer.Game.Commands.Transaction.Contexts.Interfaces;
 using GameServer.Network;
+using ServerCore.Infrastructure;
 using ServerCore.Job;
 
 namespace GameServer.Game.Commands.Transaction.Contexts.Transaction
 {
-    public class LoginContext : BaseContext<LoginContext>, IAuthContext
+    public class LoginContext : BaseContext<ClientSession, LoginContext>, IAuthContext
     {
         private WriteOnce<string> _sessionToken;
         private WriteOnce<ClientSession> _exitSession;

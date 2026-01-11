@@ -5,6 +5,7 @@ using GameServer.Game.Commands.Transaction.Contexts.Interfaces;
 using GameServer.Game.Commands.Transaction.Contexts.Transaction;
 using GameServer.Network;
 using ServerCore;
+using ServerCore.Infrastructure;
 using ServerCore.Job;
 
 namespace GameServer.Database
@@ -162,11 +163,11 @@ namespace GameServer.Database
             }
         }
 
-        public void Logout<T>(T ctx) where T : IContext
+        public void Logout<T>(T ctx) where T : IContext<ClientSession>
         {
             Push(LogoutJob, this, ctx, ctx.AccountDbId);
         }
-        private static void LogoutJob<T>(DbManager @this, T ctx) where T : IContext
+        private static void LogoutJob<T>(DbManager @this, T ctx) where T : IContext<ClientSession>
         {
             var session = ctx.Session;
             if (!@this._authSessions.TryRemove(ctx.AccountDbId, out _))
@@ -207,11 +208,11 @@ namespace GameServer.Database
             ctx.Complete();
         }
 
-        public void FindPlayer<T>(T ctx) where T : IContext, ILoadPlayerDbContext
+        public void FindPlayer<T>(T ctx) where T : IContext<ClientSession>, ILoadPlayerDbContext
         {
             Push(FindPlayerJob, this, ctx, ctx.AccountDbId);
         }
-        private static void FindPlayerJob<T>(DbManager @this, T ctx) where T : IContext, ILoadPlayerDbContext
+        private static void FindPlayerJob<T>(DbManager @this, T ctx) where T : IContext<ClientSession>, ILoadPlayerDbContext
         {
             var session = ctx.Session;
             try

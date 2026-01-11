@@ -1,10 +1,12 @@
 ﻿using GameServer.Game.Commands.Transaction.Contexts;
 using GameServer.Game.Dto;
+using GameServer.Network;
+using ServerCore.Infrastructure;
 using ServerCore.Job;
 
 namespace GameServer.Game.Commands.Transaction.Contexts.Transaction
 {
-    public class LoadWorldInfoListContext : BaseContext<LoadWorldInfoListContext>
+    public class LoadWorldInfoListContext : BaseContext<ClientSession, LoadWorldInfoListContext>
     {
         private WriteOnce<List<WorldInfoDto>> _worldInfoList = new();
 

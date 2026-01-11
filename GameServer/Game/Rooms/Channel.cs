@@ -1,11 +1,12 @@
 using GameServer.Game.Dto;
 using GameServer.Network;
 using ServerCore;
+using ServerCore.Infrastructure;
 using ServerCore.Job;
 
 namespace GameServer.Game.Rooms
 {
-    public class Channel : RoomJobSerializer
+    public class Channel : GameRoom
     {
         public Channel(IJobScheduler jobScheduler, short index) : base(jobScheduler)
         {
@@ -32,17 +33,16 @@ namespace GameServer.Game.Rooms
             return _zones.GetValueOrDefault(zoneStaticId);
         }
 
-        protected override bool OnEnter(ClientSession session)
+        protected override TransactionResult OnEnterGame(ClientSession session)
         {
-            if (!session.Routing.ChannelRef.TryAttach(this)) return false;
+            if (!session.Routing.ChannelRef.TryAttach(this)) return TransactionResult.FailedAttach;
             Log.Debug(this, "Entered Channel:{0} Session:{1}", Index, session.RuntimeId);
-            return true;
+            return TransactionResult.Success;
         }
-        protected override bool OnLeave(ClientSession session)
+        protected override void OnLeaveGame(ClientSession session)
         {
-            if (!session.Routing.ChannelRef.TryDetach()) return false;
+            if (session.Routing.ChannelRef.TryDetach()) return;
             Log.Debug(this, "Left Channel:{0} Session:{1}", Index, session.RuntimeId);
-            return true;
         }
 
         public ChannelInfoDto GetChannelInfo()

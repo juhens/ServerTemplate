@@ -1,10 +1,11 @@
 ﻿using GameServer.Network;
 using ServerCore;
+using ServerCore.Infrastructure;
 using ServerCore.Job;
 
 namespace GameServer.Game.Rooms
 {
-    public class Zone : RoomJobSerializer
+    public class Zone : GameRoom
     {
         public Zone(IJobScheduler jobScheduler, int staticId) : base(jobScheduler)
         {
@@ -18,20 +19,19 @@ namespace GameServer.Game.Rooms
             //TODO: Zone Init
         }
 
-        protected override bool OnEnter(ClientSession session)
+        protected override TransactionResult OnEnterGame(ClientSession session)
         {
-            if (!session.Routing.ZoneRef.TryAttach(this)) return false;
+            if (!session.Routing.ZoneRef.TryAttach(this)) return TransactionResult.FailedAttach;
             Log.Debug(this, "Entered Zone:{0} Session:{1}", StaticId, session.RuntimeId);
 
             // TODO: Zone 입장 패킷 브로드캐스트 필요 시 여기서 호출
             // Broadcast(session, enterPacket);
-            return true;
+            return TransactionResult.Success;
         }
-        protected override bool OnLeave(ClientSession session)
+        protected override void OnLeaveGame(ClientSession session)
         {
-            if (!session.Routing.ZoneRef.TryDetach()) return false;
+            if (session.Routing.ZoneRef.TryDetach()) return;
             Log.Debug(this, "Left Zone:{0} Session:{1}", StaticId, session.RuntimeId);
-            return true;
         }
     }
 }

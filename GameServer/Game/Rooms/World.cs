@@ -1,11 +1,12 @@
 ﻿using GameServer.Game.Dto;
 using GameServer.Network;
 using ServerCore;
+using ServerCore.Infrastructure;
 using ServerCore.Job;
 
 namespace GameServer.Game.Rooms
 {
-    public class World : RoomJobSerializer
+    public class World : GameRoom
     {
         public World(IJobScheduler executor, short staticId, string name) : base(executor)
         {
@@ -36,17 +37,16 @@ namespace GameServer.Game.Rooms
             return _channels[channelIdx];
         }
 
-        protected override bool OnEnter(ClientSession session)
+        protected override TransactionResult OnEnterGame(ClientSession session)
         {
-            if (!session.Routing.WorldRef.TryAttach(this)) return false;
+            if (!session.Routing.WorldRef.TryAttach(this)) return TransactionResult.FailedAttach;
             Log.Debug(this, "Entered World:{0} Session:{1}", StaticId, session.RuntimeId);
-            return true;
+            return TransactionResult.Success;
         }
-        protected override bool OnLeave(ClientSession session)
+        protected override void OnLeaveGame(ClientSession session)
         {
-            if (!session.Routing.WorldRef.TryDetach()) return false;
+            if (session.Routing.WorldRef.TryDetach()) return;
             Log.Debug(this, "Left World:{0} Session:{1}", StaticId, session.RuntimeId);
-            return true;
         }
 
         public WorldInfoDto GetWorldInfo()

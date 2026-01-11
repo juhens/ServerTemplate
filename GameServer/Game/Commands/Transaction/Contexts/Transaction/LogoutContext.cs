@@ -1,11 +1,13 @@
 ﻿using GameServer.Database;
 using GameServer.Game.Commands.Transaction.Contexts;
 using GameServer.Game.Commands.Transaction.Contexts.Interfaces;
+using GameServer.Network;
+using ServerCore.Infrastructure;
 using ServerCore.Job;
 
 namespace GameServer.Game.Commands.Transaction.Contexts.Transaction
 {
-    public class LogoutContext : BaseContext<LogoutContext>, IPlayerDbContext
+    public class LogoutContext : BaseContext<ClientSession, LogoutContext>, IPlayerDbContext
     {
         private WriteOnce<PlayerDb> _playerDb;
 
