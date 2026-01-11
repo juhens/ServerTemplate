@@ -7,7 +7,7 @@ namespace DummyClient.Network
 {
     public class ServerSession : PacketSession
     {
-        public long RuntimeId { get; }
+        public new long RuntimeId { get; }
         private static long _idCounter = 0;
 
         public static void ResetIdCounter()
