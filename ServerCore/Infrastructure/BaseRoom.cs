@@ -5,9 +5,9 @@ using ServerCore.Job;
 
 namespace ServerCore.Infrastructure
 {
-    public abstract class RoomJobSerializer<TSession> : JobSerializer where TSession : Session
+    public abstract class BaseRoom<TSession> : JobSerializer where TSession : Session
     {
-        protected RoomJobSerializer(IJobScheduler jobScheduler) : base(jobScheduler)
+        protected BaseRoom(IJobScheduler jobScheduler) : base(jobScheduler)
         {
             JobScheduler = jobScheduler;
         }
@@ -15,7 +15,7 @@ namespace ServerCore.Infrastructure
         protected readonly IJobScheduler JobScheduler;
 
         private readonly Dictionary<long /*runtimeId*/, TSession> _sessions = new();
-        private readonly Dictionary<long /*dbId*/, long /*runtimeId*/> _dbIdToRuntimeId = new();
+        private readonly Dictionary<long /*accountDbId*/, long /*runtimeId*/> _dbIdToRuntimeId = new();
         private readonly List<(Session srcSession, ArraySegment<byte> segment)> _broadcastList = new();
 
         private volatile int _sessionCount;
@@ -25,7 +25,7 @@ namespace ServerCore.Infrastructure
         {
             Push(EnterJob, this, ctx, JobPriority.Critical);
         }
-        private static void EnterJob<T>(RoomJobSerializer<TSession> @this, T ctx) where T : IContext<TSession>
+        private static void EnterJob<T>(BaseRoom<TSession> @this, T ctx) where T : IContext<TSession>
         {
             var session = ctx.Session;
             try
@@ -79,7 +79,7 @@ namespace ServerCore.Infrastructure
         {
             Push(LeaveJob, this, ctx, JobPriority.Critical);
         }
-        private static void LeaveJob<T>(RoomJobSerializer<TSession> @this, T ctx) where T : IContext<TSession>
+        private static void LeaveJob<T>(BaseRoom<TSession> @this, T ctx) where T : IContext<TSession>
         {
             var session = ctx.Session;
 
@@ -103,7 +103,7 @@ namespace ServerCore.Infrastructure
         {
             Push(BroadcastJob, this, session, segment, jobPriority);
         }
-        private static void BroadcastJob(RoomJobSerializer<TSession> @this, TSession session, ArraySegment<byte> segment)
+        private static void BroadcastJob(BaseRoom<TSession> @this, TSession session, ArraySegment<byte> segment)
         {
             @this._broadcastList.Add((session, segment));
         }
@@ -111,6 +111,13 @@ namespace ServerCore.Infrastructure
         protected TSession? FindSession(long runtimeId)
         {
             CheckThreadAffinity();
+            return _sessions.GetValueOrDefault(runtimeId);
+        }
+        protected TSession? FindSessionByAccountDbId(long accountDbId)
+        {
+            CheckThreadAffinity();
+            var runtimeId = _dbIdToRuntimeId.GetValueOrDefault(accountDbId, -1);
+            if (runtimeId == -1) return null;
             return _sessions.GetValueOrDefault(runtimeId);
         }
 

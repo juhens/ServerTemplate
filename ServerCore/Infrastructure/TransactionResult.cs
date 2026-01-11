@@ -31,5 +31,6 @@
         FailedAttach,
         FailedDetach,
         Disconnected,
+        DuplicateDbId,
     }
 }
