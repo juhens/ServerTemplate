@@ -36,7 +36,7 @@ namespace ServerCore.Infrastructure
                     return;
                 }
 
-                if (!@this.TryCapture(session, out var runtimeId))
+                if (!@this.TryGetRuntimeId(session, out var runtimeId))
                 {
                     ctx.Result = TransactionResult.NotRouted;
                     return;
@@ -83,7 +83,7 @@ namespace ServerCore.Infrastructure
         {
             var session = ctx.Session;
 
-            if (@this.TryCapture(session, out var runtimeId))
+            if (@this.TryGetRuntimeId(session, out var runtimeId))
             {
                 if (@this._sessions.Remove(runtimeId, out _))
                 {
@@ -94,7 +94,7 @@ namespace ServerCore.Infrastructure
             }
             else
             {
-                Log.Error(@this.GetType().Name, "Leave: Failed TryCapture. Session:{0}", session.RuntimeId);
+                Log.Error(@this.GetType().Name, "Leave: Failed TryGetRuntimeId. Session:{0}", session.RuntimeId);
             }
             ctx.Complete();
         }
@@ -126,7 +126,10 @@ namespace ServerCore.Infrastructure
             if (Current != this)
             {
                 var currentInfo = Current?.GetType().Name ?? "External Thread";
+#if DEBUG
                 Environment.FailFast($"[Thread Violation] {GetType().Name} access denied from {currentInfo}.");
+#endif
+                Log.Error(this, "[Thread Violation] {0} access denied from {1}.", GetType().Name, currentInfo);
             }
         }
 
@@ -143,7 +146,7 @@ namespace ServerCore.Infrastructure
             _broadcastList.Clear();
         }
 
-        protected abstract bool TryCapture(TSession session, out long runtimeId);
+        protected abstract bool TryGetRuntimeId(TSession session, out long runtimeId);
         protected abstract TransactionResult OnEnter(TSession session);
         protected abstract void OnLeave(TSession session);
     }
