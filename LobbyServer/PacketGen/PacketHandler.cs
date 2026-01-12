@@ -1,5 +1,7 @@
 using GameServer.Game.Commands.Transaction;
 using GameServer.Network;
+using LobbyServer.Lobby.Commands.Transaction;
+using LobbyServer.Network;
 using ServerCore.Packet;
 using ServerCore.Job;
 

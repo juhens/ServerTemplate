@@ -1,9 +1,8 @@
-﻿using GameServer.Database;
-using GameServer.Game.Commands.Transaction.Contexts.Transaction;
-using GameServer.Network;
+﻿using GameServer.Game.Commands.Transaction.Contexts.Transaction;
+using LobbyServer.Network;
 using ServerCore;
 
-namespace GameServer.Game.Commands.Transaction
+namespace LobbyServer.Lobby.Commands.Transaction
 {
     // 특별 커맨드
     // 1. Failed 금지, 예외나 실패시 핸들링하면서 무조건 끝까지 진행되게 해야함

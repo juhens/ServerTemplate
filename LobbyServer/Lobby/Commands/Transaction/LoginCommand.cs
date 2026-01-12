@@ -1,12 +1,11 @@
-﻿using GameServer.Database;
-using GameServer.Game.Commands.Transaction.Contexts.Transaction;
-using GameServer.Network;
+﻿using GameServer.Game.Commands.Transaction.Contexts.Transaction;
+using LobbyServer.Network;
 using PacketGen;
 using ServerCore;
 using ServerCore.Infrastructure;
 using ServerCore.Packet;
 
-namespace GameServer.Game.Commands.Transaction
+namespace LobbyServer.Lobby.Commands.Transaction
 {
     public static class LoginCommand
     {

@@ -11,7 +11,7 @@ namespace LobbyServer.Lobby.Rooms
         {
         }
 
-        protected override bool TryCapture(ClientSession session, out long runtimeId)
+        protected override bool TryGetRuntimeId(ClientSession session, out long runtimeId)
         {
             runtimeId = 0;
             // 단순 라우팅 확인용

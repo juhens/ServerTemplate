@@ -1,5 +1,7 @@
 using System.Net;
+using GameServer.Game.Commands.Transaction;
 using GameServer.Network;
+using LobbyServer.Lobby.Commands.Transaction;
 using LobbyServer.Network.Components;
 using PacketGen;
 using ServerCore;
