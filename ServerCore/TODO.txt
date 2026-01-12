@@ -1,0 +1,73 @@
+﻿PacketSession 분리 하고싶다아
+
+지금은 가내수공업 직,역직렬화 를 쓰는데
+나중에 검증된 라이브러리로 교체시 프로젝트 대공사가 필요함
+
+var session = new ClientSession(); <-- PacketSession 을 상속받는게 문제
+
+의사코드
+var option = new SessionOption
+{
+    PacketCodec = new MyPacketCodec()
+}
+var session = new ClientSession(option);
+
+내부
+public abstract Session
+{
+    private IPacketCodec _packetCodec;
+
+    public Session(SessionOption option)
+    {
+        _packetCodec = option.PacketCodec;
+    }
+
+    
+    private bool ProcessReceive(SocketAsyncEventArgs args)
+    {
+        // 생략
+        var processLen = _packetCodec.OnRecv(this, _recvBuffer.ReadSegment);
+        // 생략
+    }
+}
+
+public class MyPacketCodec
+{
+    public int OnRecv(ArraySegment<byte> buffer)
+    {
+        // 생략
+
+        OnRecvPacket(session, packetBuffer)
+        // 생략
+    }
+    
+    private void OnRecvPacket(Session session, ArraySegment<byte> packetBuffer)
+    {
+        
+        // 핸들러 호출, Session을 ClientSession으로 캐스팅은 핸들러가 담당 또는 PacketCodec<TSession> 제네릭 인터페이스
+    }
+}
+
+public interface IPacketCodec
+{
+    int OnRecv(ArraySegment<byte> buffer);
+    void OnRecvPacket(Session session, ushort protocolId, ArraySegment<byte> buffer)
+}
+     
+
+
+Send(IPacket packet) 필요성 유무
+
+결론은 네트워크IO 스레드가 패킷만들기(암호화 포함) 까지 하고
+보내는건 원시바이트로 보내기만 하는것이 일관성이 있음
+
+1. 잡시리얼라이저 내에서 패킷생성은 멀티스레드 활용이 안됨.
+   + 게임로직 외에 패킷생성까지 담당해야함
+2. 브로드캐스트도 패킷만 담을 경우 마지막에 Flush로 잡시리얼라이저 스레드가 쌓인 패킷을 한번에 역직렬화 해야함
+   결국 이것도 멀티스레드 활용이 안됨 + 게임로직 외에 패킷생성까지 담당
+
+결론:
+패킷 핸들러(네트워크IO스레드) 에서 Send(IPacket packet) 는 OK
+잡시리얼라이저에서 Send(IPacket packet) 는 매우 해로움
+코드상에서 강제하려면 Send(IPacket packet) 내에서 현재 잡큐내에서 실행되는 처리인지 체크하고 런타임 오류로 유도해야함
+그냥 일관성을 위해 Send(ArraySegment<byte> buffer) 인터페이스만 있는게 깔끔
