@@ -11,7 +11,7 @@ namespace GameServer.Game.Rooms
 
         protected GameRoom(IJobScheduler scheduler) : base(scheduler) { }
 
-        protected sealed override bool TryCapture(ClientSession session, out long runtimeId)
+        protected sealed override bool TryGetRuntimeId(ClientSession session, out long runtimeId)
         {
             runtimeId = 0;
             if (!session.Routing.PlayerRef.TryCapture(out var player))
