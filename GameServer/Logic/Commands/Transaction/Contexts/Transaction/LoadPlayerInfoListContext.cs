@@ -1,0 +1,36 @@
+﻿using GameServer.Database;
+using GameServer.Network;
+using ServerCore.Infrastructure;
+using ServerCore.Job;
+
+namespace GameServer.Logic.Commands.Transaction.Contexts.Transaction
+{
+    public class LoadPlayerInfoListContext : BaseContext<ClientSession, LoadPlayerInfoListContext>
+    {
+        private WriteOnce<short> _worldStaticId = new();
+        private WriteOnce<List<PlayerDb>> _playerDbList = new();
+
+        public short WorldStaticId
+        {
+            get => _worldStaticId.Value;
+            set => _worldStaticId.Value = value;
+        }
+        public List<PlayerDb> PlayerDbList
+        {
+            get => _playerDbList.Value;
+            set => _playerDbList.Value = value;
+        }
+
+        protected override void OnDispose()
+        {
+            _worldStaticId = new WriteOnce<short>();
+            _playerDbList = new WriteOnce<List<PlayerDb>>();
+        }
+
+        protected override void OnInit()
+        {
+            _worldStaticId = default!;
+            _playerDbList = default!;
+        }
+    }
+}

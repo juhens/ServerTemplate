@@ -1,5 +1,5 @@
 using GameServer.Database;
-using GameServer.Game;
+using GameServer.Logic;
 using GameServer.Network;
 using ServerCore;
 

@@ -1,0 +1,28 @@
+﻿using GameServer.Logic.Dto;
+using GameServer.Network;
+using ServerCore.Infrastructure;
+using ServerCore.Job;
+
+namespace GameServer.Logic.Commands.Transaction.Contexts.Transaction
+{
+    public class LoadWorldInfoListContext : BaseContext<ClientSession, LoadWorldInfoListContext>
+    {
+        private WriteOnce<List<WorldInfoDto>> _worldInfoList = new();
+
+        public List<WorldInfoDto> WorldInfoList
+        {
+            get => _worldInfoList.Value;
+            set => _worldInfoList.Value = value;
+        }
+
+        protected override void OnInit()
+        {
+            throw new NotImplementedException();
+        }
+
+        protected override void OnDispose()
+        {
+            throw new NotImplementedException();
+        }
+    }
+}

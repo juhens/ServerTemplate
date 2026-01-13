@@ -1,5 +1,5 @@
 using System.Net;
-using GameServer.Game.Commands.Transaction;
+using GameServer.Logic.Commands.Transaction;
 using GameServer.Network.Components;
 using PacketGen;
 using ServerCore;

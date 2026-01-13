@@ -1,4 +1,4 @@
-using GameServer.Game.Commands.Transaction;
+using GameServer.Logic.Commands.Transaction;
 using GameServer.Network;
 using ServerCore.Packet;
 using ServerCore.Job;

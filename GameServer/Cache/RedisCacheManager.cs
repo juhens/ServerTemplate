@@ -3,7 +3,7 @@ using System.Collections.Concurrent;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text.Json;
-using GameServer.Game.Dto;
+using GameServer.Logic.Dto;
 using ServerCore;
 using StackExchange.Redis;
 

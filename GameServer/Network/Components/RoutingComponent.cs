@@ -1,6 +1,6 @@
 ﻿using GameServer.Database;
-using GameServer.Game.Objects;
-using GameServer.Game.Rooms;
+using GameServer.Logic.Objects;
+using GameServer.Logic.Rooms;
 using ServerCore.Job;
 
 // Change Channel Transaction

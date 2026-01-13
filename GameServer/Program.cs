@@ -2,7 +2,7 @@ using System.Net;
 using GameServer.Cache;
 using GameServer.Common;
 using GameServer.Database;
-using GameServer.Game;
+using GameServer.Logic;
 using GameServer.Network;
 using ServerCore;
 
