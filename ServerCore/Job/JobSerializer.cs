@@ -1,5 +1,6 @@
 using System;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace ServerCore.Job
 {
@@ -14,10 +15,19 @@ namespace ServerCore.Job
         private readonly Action<JobSerializer> _executorPush;
         private volatile int _isScheduled;
 
-        [ThreadStatic]
-        public static JobSerializer? Current;
-        [ThreadStatic]
-        public static bool IsExecutorPush;
+        private static readonly AsyncLocal<JobSerializer?> InternalCurrent = new();
+        public static JobSerializer? Current
+        {
+            get => InternalCurrent.Value;
+            private set => InternalCurrent.Value = value;
+        }
+
+        private static readonly AsyncLocal<bool> InternalIsExecutorPush = new();
+        public static bool IsExecutorPush
+        {
+            get => InternalIsExecutorPush.Value;
+            private set => InternalIsExecutorPush.Value = value;
+        }
 
         public void Push(IJob job)
         {
@@ -57,6 +67,39 @@ namespace ServerCore.Job
         }
 
 
+        protected void Push(Func<ValueTask> action, JobPriority jobPriority)
+        {
+            _jobQueue.Push(JobAsync.Create(action, jobPriority));
+            RegisterSchedule();
+        }
+        protected void Push<T1>(Func<T1, ValueTask> action, T1 t1, JobPriority jobPriority)
+        {
+            _jobQueue.Push(JobAsync<T1>.Create(action, t1, jobPriority));
+            RegisterSchedule();
+        }
+        protected void Push<T1, T2>(Func<T1, T2, ValueTask> action, T1 t1, T2 t2, JobPriority jobPriority)
+        {
+            _jobQueue.Push(JobAsync<T1, T2>.Create(action, t1, t2, jobPriority));
+            RegisterSchedule();
+        }
+        protected void Push<T1, T2, T3>(Func<T1, T2, T3, ValueTask> action, T1 t1, T2 t2, T3 t3, JobPriority jobPriority)
+        {
+            _jobQueue.Push(JobAsync<T1, T2, T3>.Create(action, t1, t2, t3, jobPriority));
+            RegisterSchedule();
+        }
+        protected void Push<T1, T2, T3, T4>(Func<T1, T2, T3, T4, ValueTask> action, T1 t1, T2 t2, T3 t3, T4 t4, JobPriority jobPriority)
+        {
+            _jobQueue.Push(JobAsync<T1, T2, T3, T4>.Create(action, t1, t2, t3, t4, jobPriority));
+            RegisterSchedule();
+        }
+        protected void Push<T1, T2, T3, T4, T5>(Func<T1, T2, T3, T4, T5, ValueTask> action, T1 t1, T2 t2, T3 t3, T4 t4, T5 t5, JobPriority jobPriority)
+        {
+            _jobQueue.Push(JobAsync<T1, T2, T3, T4, T5>.Create(action, t1, t2, t3, t4, t5, jobPriority));
+            RegisterSchedule();
+        }
+
+
+
         private void RegisterSchedule()
         {
             if (Interlocked.CompareExchange(ref _isScheduled, 1, 0) != 0) return;
@@ -70,7 +113,7 @@ namespace ServerCore.Job
                 IsExecutorPush = false;
             }
         }
-        public void Execute()
+        public async ValueTask ExecuteAsync()
         {
             var prev = Current;
             Current = this;
@@ -79,7 +122,7 @@ namespace ServerCore.Job
             {
                 if (!_jobQueue.IsEmpty)
                 {
-                    _jobQueue.Flush();
+                    await _jobQueue.FlushAsync();
                 }
                 OnPostFlush();
             }

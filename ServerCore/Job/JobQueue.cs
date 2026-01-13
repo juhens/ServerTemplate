@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Concurrent;
+using System.Threading.Tasks;
 
 namespace ServerCore.Job
 {
@@ -11,13 +12,13 @@ namespace ServerCore.Job
         {
             _queue.Enqueue(job);
         }
-        public void Flush()
+        public async ValueTask FlushAsync()
         {
             while (_queue.TryDequeue(out var job))
             {
                 try
                 {
-                    job.Execute();
+                    await job.ExecuteAsync();
                 }
                 catch (Exception e)
                 {

@@ -29,10 +29,7 @@ namespace ServerCore.Job
         {
             for (var i = 0; i < threadCount; i++)
             {
-                Task.Factory.StartNew(
-                    async () => await ThreadMain(),
-                    TaskCreationOptions.LongRunning
-                );
+                _ = Task.Run(ThreadMain);
             }
         }
         private async Task ThreadMain()
@@ -40,7 +37,7 @@ namespace ServerCore.Job
             var reader = _channel.Reader;
             await foreach (var jobSerializer in reader.ReadAllAsync())
             {
-                jobSerializer.Execute();
+                await jobSerializer.ExecuteAsync();
             }
         }
     }

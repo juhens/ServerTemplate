@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Concurrent;
+using System.Threading.Tasks;
 
 namespace ServerCore.Job
 {
@@ -12,14 +13,14 @@ namespace ServerCore.Job
 
     public interface IJob
     {
-        public void Execute();
+        public ValueTask ExecuteAsync();
         public bool Cancel { get; }
         public JobPriority Priority { get; }
     }
 
     public abstract class JobBase : IJob
     {
-        public abstract void Execute();
+        public abstract ValueTask ExecuteAsync();
 
         public bool Cancel { get; set; }
         public JobPriority Priority { get; protected set; }
@@ -39,11 +40,12 @@ namespace ServerCore.Job
             job.Cancel = false;
             return job;
         }
-        public override void Execute()
+        public override ValueTask ExecuteAsync()
         {
             if (!Cancel) _action.Invoke();
             _action = null!;
             Pool.Add(this);
+            return ValueTask.CompletedTask;
         }
     }
     public class Job<T1> : JobBase
@@ -62,12 +64,13 @@ namespace ServerCore.Job
             job.Cancel = false;
             return job;
         }
-        public override void Execute()
+        public override ValueTask ExecuteAsync()
         {
             if (!Cancel) _action.Invoke(_t1);
             _action = null!;
             _t1 = default!;
             Pool.Add(this);
+            return ValueTask.CompletedTask;
         }
     }
     public class Job<T1, T2> : JobBase
@@ -88,13 +91,14 @@ namespace ServerCore.Job
             job.Cancel = false;
             return job;
         }
-        public override void Execute()
+        public override ValueTask ExecuteAsync()
         {
             if (!Cancel) _action.Invoke(_t1, _t2);
             _action = null!;
             _t1 = default!;
             _t2 = default!;
             Pool.Add(this);
+            return ValueTask.CompletedTask;
         }
     }
     public class Job<T1, T2, T3> : JobBase
@@ -117,7 +121,7 @@ namespace ServerCore.Job
             job.Cancel = false;
             return job;
         }
-        public override void Execute()
+        public override ValueTask ExecuteAsync()
         {
             if (!Cancel) _action.Invoke(_t1, _t2, _t3);
             _action = null!;
@@ -125,6 +129,7 @@ namespace ServerCore.Job
             _t2 = default!;
             _t3 = default!;
             Pool.Add(this);
+            return ValueTask.CompletedTask;
         }
     }
     public class Job<T1, T2, T3, T4> : JobBase
@@ -149,7 +154,7 @@ namespace ServerCore.Job
             job.Cancel = false;
             return job;
         }
-        public override void Execute()
+        public override ValueTask ExecuteAsync()
         {
             if (!Cancel) _action.Invoke(_t1, _t2, _t3, _t4);
             _action = null!;
@@ -158,6 +163,7 @@ namespace ServerCore.Job
             _t3 = default!;
             _t4 = default!;
             Pool.Add(this);
+            return ValueTask.CompletedTask;
         }
     }
     public class Job<T1, T2, T3, T4, T5> : JobBase
@@ -184,7 +190,7 @@ namespace ServerCore.Job
             job.Cancel = false;
             return job;
         }
-        public override void Execute()
+        public override ValueTask ExecuteAsync()
         {
             if (!Cancel) _action.Invoke(_t1, _t2, _t3, _t4, _t5);
             _action = null!;
@@ -194,6 +200,7 @@ namespace ServerCore.Job
             _t4 = default!;
             _t5 = default!;
             Pool.Add(this);
+            return ValueTask.CompletedTask;
         }
     }
 }
